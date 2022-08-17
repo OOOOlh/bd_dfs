@@ -39,20 +39,19 @@ func main() {
 	filenameOfGet := flag.String("getfile", "unknow", "the filename of the file you want to get") // SmallFile
 	filenameOfPut := flag.String("putfile", "unknow", "the filename of the file you want to put") // SmallFile.txt
 	filenameOfDel := flag.String("delfile", "unknow", "the filename of the file you want to del")
-
 	flag.Parse()
-	
-	if *filenameOfPut!="unknow" {
+
+	if *filenameOfPut != "unknow" {
 		client.PutFile(*filenameOfPut)
 		fmt.Println(" -PutFile for ", *filenameOfPut)
 	}
-	
-	if *filenameOfGet!="unknow" {
+
+	if *filenameOfGet != "unknow" {
 		client.GetFile(*filenameOfGet)
 		fmt.Println(" -Getfile for ", *filenameOfGet)
 	}
 
-	if *filenameOfDel!="unknow" {
+	if *filenameOfDel != "unknow" {
 		client.DelFile(*filenameOfDel)
 		fmt.Println(" -Delfile for ", *filenameOfDel)
 	}

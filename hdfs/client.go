@@ -14,78 +14,78 @@ import (
 	"strconv"
 )
 
-func (client *Client) PutFile(fPath string){
-
+func (client *Client) PutFile(fPath string) {
 	//删除上次的临时文件
 	_, err := os.Stat(client.TempStoreLocation)
 	//如果存在，就移除
-	if err == nil{
+	if err == nil {
 		err := os.RemoveAll(client.TempStoreLocation)
-		if err!=nil {
+		if err != nil {
 			fmt.Println("XXX Client error at remove tempfiles", err.Error())
 			TDFSLogger.Fatal("XXX Client error: ", err)
 		}
 	}
-	
+
 	fmt.Println("****************************************")
 	fmt.Printf("*** Putting %s to TDFS [NameNode: %s] )\n", fPath, client.NameNodeAddr)
 
 	//将文件的名字和大小发送给NN
 	of, err := os.Stat(fPath)
-	if err != nil{
-		fmt.Println("file state error",err)
+	if err != nil {
+		fmt.Println("file state error", err)
 	}
 	file := &File{
-		Name: of.Name(),
+		Name:   of.Name(),
 		Length: of.Size(),
 	}
 
+	// json字符串
 	d, err := json.Marshal(file)
-	if err != nil{
+	if err != nil {
 		fmt.Println("json to byte[] error", err)
 	}
-
+	// 序列化
 	reader := bytes.NewReader(d)
 	resp, err := http.Post(client.NameNodeAddr+"/put", "application/json", reader)
-	if err != nil{
+	if err != nil {
 		fmt.Println("http post error", err)
 	}
-
 	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil{
+	if err != nil {
 		fmt.Println("ioutil.ReadAll", err)
 	}
 
-	if err = json.Unmarshal(body, file); err != nil{
+	if err = json.Unmarshal(body, file); err != nil {
 		fmt.Println("byte[] to json error", err)
 	}
 
-	err = os.MkdirAll(client.TempStoreLocation + "/" + file.Name, 0777)
-	if err!=nil {
+	//创建目录
+	err = os.MkdirAll(client.TempStoreLocation+"/"+file.Name, 0777)
+	if err != nil {
 		fmt.Println("XXX Client error at MkdirAll", err.Error())
 		TDFSLogger.Fatal("XXX NameNode error: ", err)
 	}
 
 	//开始向DN传数据
 	data := readFileByBytes(fPath)
-	for i := 0; i < len(file.Chunks); i++{
-		CreateFile(client.TempStoreLocation + "/" + file.Name + "/chunk-" +strconv.Itoa(i))
+	for i := 0; i < len(file.Chunks); i++ {
+		// 存储在缓冲区中
+		CreateFile(client.TempStoreLocation + "/" + file.Name + "/chunk-" + strconv.Itoa(i))
 		//先在客户端本地分割
-		FastWrite(client.TempStoreLocation + "/" + file.Name + "/chunk-" +strconv.Itoa(i), data[i*SPLIT_UNIT:(i+1)*SPLIT_UNIT])
-		
-		PutChunk(client.TempStoreLocation + "/" + file.Name + "/chunk-" +strconv.Itoa(i), file.Chunks[i].ReplicaLocationList)
+		FastWrite(client.TempStoreLocation+"/"+file.Name+"/chunk-"+strconv.Itoa(i), data[i*SPLIT_UNIT:(i+1)*SPLIT_UNIT])
+		// 发送到datanode进行存储
+		PutChunk(client.TempStoreLocation+"/"+file.Name+"/chunk-"+strconv.Itoa(i), file.Chunks[i].ReplicaLocationList)
 	}
-
 	fmt.Println("putFile finish!")
 }
 
-func (client *Client) GetFile(fName string){ //, fName string
+func (client *Client) GetFile(fName string) { //, fName string
 	//删除上次的临时文件
 	_, err := os.Stat(client.TempStoreLocation)
 	//如果存在，就移除
-	if err == nil{
+	if err == nil {
 		err := os.RemoveAll(client.TempStoreLocation)
-		if err!=nil {
+		if err != nil {
 			fmt.Println("XXX Client error at remove tempfiles", err.Error())
 			TDFSLogger.Fatal("XXX Client error: ", err)
 		}
@@ -101,33 +101,33 @@ func (client *Client) GetFile(fName string){ //, fName string
 	response, err := http.Get(client.NameNodeAddr + "/getfile/" + fName)
 	if err != nil {
 		fmt.Println("XXX Client error at Get file", err.Error())
-		TDFSLogger.Fatal("XXX Client error at Get file",err)
+		TDFSLogger.Fatal("XXX Client error at Get file", err)
 	}
 	defer response.Body.Close()
 
 	bytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		fmt.Println("XXX Client error at read response data", err.Error())
-		TDFSLogger.Fatal("XXX Client error at read response data",err)
+		TDFSLogger.Fatal("XXX Client error at read response data", err)
 	}
 
 	file := &File{}
-	err = json.Unmarshal(bytes, file);
-	if err!= nil{
+	err = json.Unmarshal(bytes, file)
+	if err != nil {
 		fmt.Println("XXX Client error at decode json", err.Error())
-		TDFSLogger.Fatal("XXX Client error at decode json",err)
+		TDFSLogger.Fatal("XXX Client error at decode json", err)
 	}
 
 	fmt.Println("****************************************")
 
-	err = os.MkdirAll(client.TempStoreLocation + "/" + file.Name, 0777)
-	if err!=nil {
+	err = os.MkdirAll(client.TempStoreLocation+"/"+file.Name, 0777)
+	if err != nil {
 		fmt.Println("XXX Client error at MkdirAll", err.Error())
 		TDFSLogger.Fatal("XXX NameNode error: ", err)
 	}
 
-	for i := 0; i < len(file.Chunks); i++{
-		CreateFile(client.TempStoreLocation + "/" + file.Name + "/chunk-" +strconv.Itoa(i))
+	for i := 0; i < len(file.Chunks); i++ {
+		CreateFile(client.TempStoreLocation + "/" + file.Name + "/chunk-" + strconv.Itoa(i))
 		//从DN接收文件，并保存在临时文件夹中
 		client.GetChunk(file, i)
 	}
@@ -136,13 +136,13 @@ func (client *Client) GetFile(fName string){ //, fName string
 	client.AssembleFile(*file)
 }
 
-func (client *Client) DelFile(fName string){
+func (client *Client) DelFile(fName string) {
 	//删除上次的临时文件
 	_, err := os.Stat(client.TempStoreLocation)
 	//如果存在，就移除
-	if err == nil{
+	if err == nil {
 		err := os.RemoveAll(client.TempStoreLocation)
-		if err!=nil {
+		if err != nil {
 			fmt.Println("XXX Client error at remove tempfiles", err.Error())
 			TDFSLogger.Fatal("XXX Client error: ", err)
 		}
@@ -153,7 +153,7 @@ func (client *Client) DelFile(fName string){
 	response, err := http.Get(client.NameNodeAddr + "/delfile/" + fName)
 	if err != nil {
 		fmt.Println("XXX Client error at Get file", err.Error())
-		TDFSLogger.Fatal("XXX Client error at Get file",err)
+		TDFSLogger.Fatal("XXX Client error at Get file", err)
 	}
 	defer response.Body.Close()
 
@@ -161,27 +161,25 @@ func (client *Client) DelFile(fName string){
 	bytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		fmt.Println("XXX Client error at read response data", err.Error())
-		TDFSLogger.Fatal("XXX Client error at read response data",err)
+		TDFSLogger.Fatal("XXX Client error at read response data", err)
 	}
 
 	file := &File{}
-	if err = json.Unmarshal(bytes, file); err != nil{
+	if err = json.Unmarshal(bytes, file); err != nil {
 		fmt.Println("byte[] to json error", err)
 	}
 
-	for i := 0; i < len(file.Chunks); i++{
+	for i := 0; i < len(file.Chunks); i++ {
 		client.delChunk(file, i)
 	}
 	fmt.Println("*** delete finish ")
 	fmt.Println("****************************************")
 }
 
-
 //将文件的该chunk发送给对应的两个DN
-func PutChunk(tempChunkPath string, replicationList [REDUNDANCE]ReplicaLocation){
-	for i := 0; i < len(replicationList); i++{
+func PutChunk(tempChunkPath string, replicationList [REDUNDANCE]ReplicaLocation) {
+	for i := 0; i < len(replicationList); i++ {
 		// replication[i].ServerLocation
-
 		/** Create form file **/
 		buf := new(bytes.Buffer)
 		writer := multipart.NewWriter(buf)
@@ -208,7 +206,7 @@ func PutChunk(tempChunkPath string, replicationList [REDUNDANCE]ReplicaLocation)
 
 		/** Set Params Before Post **/
 		params := map[string]string{
-			"ReplicaNum" : strconv.Itoa(replicationList[i].ReplicaNum),  //chunkNum
+			"ReplicaNum": strconv.Itoa(replicationList[i].ReplicaNum), //chunkNum
 		}
 		for key, val := range params {
 			err = writer.WriteField(key, val)
@@ -221,8 +219,8 @@ func PutChunk(tempChunkPath string, replicationList [REDUNDANCE]ReplicaLocation)
 		contentType := writer.FormDataContentType()
 		writer.Close() // 发送之前必须调用Close()以写入结尾行
 
-		res, err := http.Post(replicationList[i].ServerLocation+"/putchunk", 
-								contentType, buf) // /"+strconv.Itoa(chunkNum)
+		res, err := http.Post(replicationList[i].ServerLocation+"/putchunk",
+			contentType, buf) // /"+strconv.Itoa(chunkNum)
 		if err != nil {
 			fmt.Println("XXX NameNode error at Post form file", err.Error())
 			TDFSLogger.Fatal("XXX NameNode error: ", err)
@@ -237,21 +235,19 @@ func PutChunk(tempChunkPath string, replicationList [REDUNDANCE]ReplicaLocation)
 			fmt.Println("XXX NameNode error at Read response", err.Error())
 			TDFSLogger.Fatal("XXX NameNode error: ", err)
 		}
-		fmt.Print("*** DataNoed Response: ",string(response))
+		fmt.Print("*** DataNoed Response: ", string(response))
 	}
 }
 
+func (client *Client) GetChunk(file *File, num int) { //ChunkUnit chunkbytes []byte
 
+	fmt.Println("* getting chunk-", num, "of file:", file.Name)
 
-func (client *Client)GetChunk(file *File, num int){//ChunkUnit chunkbytes []byte
-	
-	fmt.Println("* getting chunk-",num, "of file:", file.Name)
-
-	for i:=0; i<REDUNDANCE ; i++{
+	for i := 0; i < REDUNDANCE; i++ {
 		replicalocation := file.Chunks[num].ReplicaLocationList[i].ServerLocation
 		repilcanum := file.Chunks[num].ReplicaLocationList[i].ReplicaNum
 		/* send Get chunkdata request */
-		url := replicalocation+"/getchunk/"+strconv.Itoa(repilcanum)
+		url := replicalocation + "/getchunk/" + strconv.Itoa(repilcanum)
 		dataResp, err := http.Get(url)
 		if err != nil {
 			fmt.Println("XXX NameNode error at Get chunk of ", file.Info, ": ", err.Error())
@@ -267,10 +263,10 @@ func (client *Client)GetChunk(file *File, num int){//ChunkUnit chunkbytes []byte
 		// fmt.Println("** DataNode Response of Get chunk-",num,": ", string(chunkbytes))
 		/* store chunkdata at nn local */
 
-		FastWrite(client.TempStoreLocation + "/" + file.Name + "/chunk-"+strconv.Itoa(num), chunkbytes)
-		
+		FastWrite(client.TempStoreLocation+"/"+file.Name+"/chunk-"+strconv.Itoa(num), chunkbytes)
+
 		/* send Get chunkhash request */
-		hashRes, err := http.Get(replicalocation+"/getchunkhash/"+strconv.Itoa(repilcanum))
+		hashRes, err := http.Get(replicalocation + "/getchunkhash/" + strconv.Itoa(repilcanum))
 		if err != nil {
 			fmt.Println("XXX NameNode error at Get chunkhash", err.Error())
 			TDFSLogger.Fatal("XXX NameNode error: ", err)
@@ -282,7 +278,7 @@ func (client *Client)GetChunk(file *File, num int){//ChunkUnit chunkbytes []byte
 			fmt.Println("XXX NameNode error at Read response of chunkhash", err.Error())
 			TDFSLogger.Fatal("XXX NameNode error: ", err)
 		}
-		
+
 		/* check hash */
 		// chunkfile := OpenFile(namenode.NAMENODE_DIR+"/"+filename+"/chunk-"+strconv.Itoa(chunknum))
 		hash := sha256.New()
@@ -292,21 +288,21 @@ func (client *Client)GetChunk(file *File, num int){//ChunkUnit chunkbytes []byte
 		fmt.Println("*** chunk hash calculated: ", hashStr)
 		fmt.Println("*** chunk hash get: ", string(chunkhash))
 
-		if hashStr==string(chunkhash) {
+		if hashStr == string(chunkhash) {
 			break
-		}else{
+		} else {
 			fmt.Println("X=X the first replica of chunk-", num, "'s hash(checksum) is WRONG, continue to request anothor replica...")
 			continue
 		}
 	}
 }
 
-func (client *Client)AssembleFile(file File){
-	fmt.Println("@ AssembleFile of ",file.Name)
+func (client *Client) AssembleFile(file File) {
+	fmt.Println("@ AssembleFile of ", file.Name)
 	filedata := make([][]byte, len(file.Chunks))
-	for i:=0; i<len(file.Chunks); i++{
+	for i := 0; i < len(file.Chunks); i++ {
 		// fmt.Println("& Assmble chunk-",i)
-		b := readFileByBytes(client.TempStoreLocation + "/" + file.Name + "/chunk-"+strconv.Itoa(i))
+		b := readFileByBytes(client.TempStoreLocation + "/" + file.Name + "/chunk-" + strconv.Itoa(i))
 		// fmt.Println("& Assmble chunk b=", b)
 		filedata[i] = make([]byte, 100)
 		filedata[i] = b
@@ -315,23 +311,23 @@ func (client *Client)AssembleFile(file File){
 	}
 	fdata := bytes.Join(filedata, nil)
 	//只创建文件夹
-	err := os.MkdirAll(client.StoreLocation + "/" + file.Name, 0777)
-	if err!=nil {
+	err := os.MkdirAll(client.StoreLocation+"/"+file.Name, 0777)
+	if err != nil {
 		fmt.Println("XXX Client error at MkdirAll", err.Error())
 		TDFSLogger.Fatal("XXX NameNode error: ", err)
 	}
 	//只创建文件
 	CreateFile(client.StoreLocation + "/" + file.Name + "/" + file.Name)
-	FastWrite(client.StoreLocation + "/" + file.Name + "/" + file.Name, fdata)
+	FastWrite(client.StoreLocation+"/"+file.Name+"/"+file.Name, fdata)
 }
 
-func (client *Client) delChunk(file *File, num int){
-	fmt.Println("** deleting chunk-",num, "of file:", file.Name)
+func (client *Client) delChunk(file *File, num int) {
+	fmt.Println("** deleting chunk-", num, "of file:", file.Name)
 
-	for i:=0; i<REDUNDANCE; i++{
+	for i := 0; i < REDUNDANCE; i++ {
 		chunklocation := file.Chunks[num].ReplicaLocationList[i].ServerLocation
 		chunknum := file.Chunks[num].ReplicaLocationList[i].ReplicaNum
-		url := chunklocation+"/delchunk/"+strconv.Itoa(chunknum)
+		url := chunklocation + "/delchunk/" + strconv.Itoa(chunknum)
 
 		// response, err := http.Get(url)
 		c := &http.Client{}
@@ -340,11 +336,11 @@ func (client *Client) delChunk(file *File, num int){
 			fmt.Println("XXX NameNode error at Del chunk of ", file.Info, ": ", err.Error())
 			TDFSLogger.Fatal("XXX NameNode error: ", err)
 		}
-		
+
 		response, err := c.Do(req)
 		if err != nil {
 			fmt.Println("XXX NameNode error at Del chunk(Do):", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error at Del chunk(Do):",err)
+			TDFSLogger.Fatal("XXX NameNode error at Del chunk(Do):", err)
 		}
 		defer response.Body.Close()
 
@@ -354,58 +350,58 @@ func (client *Client) delChunk(file *File, num int){
 			fmt.Println("XXX NameNode error at Read response", err.Error())
 			TDFSLogger.Fatal("XXX NameNode error: ", err)
 		}
-		fmt.Println("*** DataNode Response of Delete chunk-",num,"replica-",i,": ",string(delRes))
+		fmt.Println("*** DataNode Response of Delete chunk-", num, "replica-", i, ": ", string(delRes))
 		// return chunkbytes
 	}
 }
 
-func (client *Client) Test(){
-	_, err := http.Get(client.NameNodeAddr+"/test")
+func (client *Client) Test() {
+	_, err := http.Get(client.NameNodeAddr + "/test")
 	if err != nil {
 		fmt.Println("Client error at Get test", err.Error())
 	}
 }
 
-func (client *Client) uploadFileByMultipart(fPath string){
+func (client *Client) uploadFileByMultipart(fPath string) {
 	buf := new(bytes.Buffer)
-    writer := multipart.NewWriter(buf)
-    formFile, err := writer.CreateFormFile("putfile", fPath)
+	writer := multipart.NewWriter(buf)
+	formFile, err := writer.CreateFormFile("putfile", fPath)
 	if err != nil {
 		fmt.Println("XXX Client error at Create form file", err.Error())
-		TDFSLogger.Fatal("XXX Client error at Create form file",err)
+		TDFSLogger.Fatal("XXX Client error at Create form file", err)
 	}
-	
+
 	//打开本地文件
 	srcFile, err := os.Open(fPath)
-    if err != nil {
+	if err != nil {
 		fmt.Println("XXX Client error at Open source file", err.Error())
-		TDFSLogger.Fatal("XXX Client error at Open source file",err)
-    }
+		TDFSLogger.Fatal("XXX Client error at Open source file", err)
+	}
 	defer srcFile.Close()
-	
-    _, err = io.Copy(formFile, srcFile)
-    if err != nil {
-			fmt.Println("XXX Client error at Write to form file", err.Error())
-			TDFSLogger.Fatal("XXX Client error at Write to form file",err)
-    }
+
+	_, err = io.Copy(formFile, srcFile)
+	if err != nil {
+		fmt.Println("XXX Client error at Write to form file", err.Error())
+		TDFSLogger.Fatal("XXX Client error at Write to form file", err)
+	}
 
 	contentType := writer.FormDataContentType()
-    writer.Close() // 发送之前必须调用Close()以写入结尾行
-		//post发送到http://localhost:11090/putfile
-    res, err := http.Post(client.NameNodeAddr+"/putfile", contentType, buf)
-    if err != nil {
-			fmt.Println("XXX Client error at Post form file", err.Error())
-			TDFSLogger.Fatal("XXX Client error at Post form file",err)
+	writer.Close() // 发送之前必须调用Close()以写入结尾行
+	//post发送到http://localhost:11090/putfile
+	res, err := http.Post(client.NameNodeAddr+"/putfile", contentType, buf)
+	if err != nil {
+		fmt.Println("XXX Client error at Post form file", err.Error())
+		TDFSLogger.Fatal("XXX Client error at Post form file", err)
 	}
 	defer res.Body.Close()
 
-  content, err := ioutil.ReadAll(res.Body)
-  if err != nil {
+	content, err := ioutil.ReadAll(res.Body)
+	if err != nil {
 		fmt.Println("XXX Client error at Read response", err.Error())
-		TDFSLogger.Fatal("XXX Client error at Read response",err)
+		TDFSLogger.Fatal("XXX Client error at Read response", err)
 	}
-	
-  fmt.Println("*** NameNode Response: ",string(content))
+
+	fmt.Println("*** NameNode Response: ", string(content))
 }
 
 //http://localhost:11090
@@ -416,34 +412,34 @@ func (client *Client) SetConfig(nnaddr string) {
 /* Allocation or AskInfo
  * POST (fileName string, fileBytes int)
  * Wait ReplicaList []ReplicaLocation   */
-func RequestInfo(fileName string, fileBytes int) ([]ReplicaLocation){
+func RequestInfo(fileName string, fileBytes int) []ReplicaLocation {
 	/* POST and Wait */
 	replicaLocationList := []ReplicaLocation{
-		ReplicaLocation{"http://localhost:11091", 3,}, 
-		ReplicaLocation{"http://localhost:11092", 5,},
+		ReplicaLocation{"http://localhost:11091", 3},
+		ReplicaLocation{"http://localhost:11092", 5},
 	}
 	return replicaLocationList
 }
 
-func uploadFileByBody(client *Client, fPath string){
+func uploadFileByBody(client *Client, fPath string) {
 	file, err := os.Open(fPath)
-    if err != nil {
+	if err != nil {
 		fmt.Println("XXX Client Fatal error at Open uploadfile", err.Error())
-		TDFSLogger.Fatal("XXX Client error at Open uploadfile",err)
-    }
-    defer file.Close()
+		TDFSLogger.Fatal("XXX Client error at Open uploadfile", err)
+	}
+	defer file.Close()
 
-    res, err := http.Post(client.NameNodeAddr+"/putfile", "multipart/form-data", file) //  
-    if err != nil {
+	res, err := http.Post(client.NameNodeAddr+"/putfile", "multipart/form-data", file) //
+	if err != nil {
 		fmt.Println("Client Fatal error at Post", err.Error())
-		TDFSLogger.Fatal("XXX Client error at at Post",err)
-    }
-    defer res.Body.Close()
+		TDFSLogger.Fatal("XXX Client error at at Post", err)
+	}
+	defer res.Body.Close()
 
-    content, err := ioutil.ReadAll(res.Body)
-    if err != nil {
+	content, err := ioutil.ReadAll(res.Body)
+	if err != nil {
 		fmt.Println("Client Fatal error at Read response", err.Error())
-		TDFSLogger.Fatal("XXX Client error at Read response",err)
-    }
-    fmt.Println(string(content))
+		TDFSLogger.Fatal("XXX Client error at Read response", err)
+	}
+	fmt.Println(string(content))
 }
