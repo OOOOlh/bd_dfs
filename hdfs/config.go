@@ -22,34 +22,23 @@ type ChunkUnit []byte // SPLIT_UNIT
 // 	ChunkNum int
 // }
 
-////// File to Chunk
-type NameSpaceStruct map[string]File
-type File struct {
-	Info   string // file info
+// DataNode的TreeStruct
+type Folder struct {
 	Name   string
-	Length int64
-	// DataNodes []FileToDataNode
-	Chunks []FileChunk
-	// Chunks [CHUNKTOTAL]FileChunk
-	// 记录文件的最后一个块的偏移量
-	Offset_LastChunk int
+	Folder []*Folder
+	Files  []*File
 }
 
-// DataNode的TreeStruct
-type FileFolderNode struct {
-	Name   string
-	Folder []*FileFolderNode
-	Files  []*FileNode
-}
-type FileNode struct {
+type File struct {
 	Name            string
 	Length          int64
 	Chunks          []FileChunk
 	OffsetLastChunk int
+	Info            string // file info
 }
 
 // 根据目录结构查找文件列表
-func (Node *FileFolderNode) GetFileList(filePath string) []*FileNode {
+func (Node *Folder) GetFileList(filePath string) []*File {
 	path := strings.Split(filePath, "/")[1:]
 	index := 0
 	for index < len(path) {
@@ -73,7 +62,7 @@ func (Node *FileFolderNode) GetFileList(filePath string) []*FileNode {
 }
 
 // 根据目录获取文件节点信息
-func (Node *FileFolderNode) GetFileNode(filePath string) *FileNode {
+func (Node *Folder) GetFileNode(filePath string) *File {
 	// /root/folder1/data.txt  -> [root, folder1, data.txt]
 	path := strings.Split(filePath, "/")[1:]
 	if path[0] != "root" {
@@ -128,7 +117,7 @@ type Config struct {
 }
 
 type NameNode struct {
-	NameSpace NameSpaceStruct
+	NameSpace Folder
 	Location  string
 	Port      int
 	//DataNode数量

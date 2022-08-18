@@ -4,15 +4,16 @@ import (
 	"testing"
 )
 
-func getNodes() *FileFolderNode {
-	return &FileFolderNode{
+func getNodes() *Folder {
+	return &Folder{
 		"root",
-		[]*FileFolderNode{},
-		[]*FileNode{&FileNode{
+		[]*Folder{},
+		[]*File{{
 			"data",
 			1024,
 			[]FileChunk{},
 			0,
+			"",
 		}},
 	}
 }

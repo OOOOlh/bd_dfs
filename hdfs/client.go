@@ -136,6 +136,34 @@ func (client *Client) GetFile(fName string) { //, fName string
 	client.AssembleFile(*file)
 }
 
+//new added
+func (client *Client) GetFolder(fName string) { //fName string
+
+	fmt.Println("****************************************")
+	fmt.Printf("*** Getting from TDFS [NameNode: %s] to ${GOPATH}/%s )\n", client.NameNodeAddr, fName) //  as %s , fName
+
+	response, err := http.Get(client.NameNodeAddr + "/getfolder/" + fName)
+	if err != nil {
+		fmt.Println("Client error at Get folder", err.Error())
+		TDFSLogger.Fatal("Client error at Get folder", err)
+	}
+	defer response.Body.Close()
+
+	bytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		fmt.Println("Client error at read response data", err.Error())
+		TDFSLogger.Fatal("Client error at read response data", err)
+	}
+
+	var folder []string
+	if err = json.Unmarshal(bytes, &folder); err != nil {
+		fmt.Println("byte[] to json error", err)
+	}
+
+	fmt.Println("success get the filename list in this folder:", folder)
+
+}
+
 func (client *Client) DelFile(fName string) {
 	//删除上次的临时文件
 	_, err := os.Stat(client.TempStoreLocation)
@@ -415,8 +443,8 @@ func (client *Client) SetConfig(nnaddr string) {
 func RequestInfo(fileName string, fileBytes int) []ReplicaLocation {
 	/* POST and Wait */
 	replicaLocationList := []ReplicaLocation{
-		ReplicaLocation{"http://localhost:11091", 3},
-		ReplicaLocation{"http://localhost:11092", 5},
+		{"http://localhost:11091", 3},
+		{"http://localhost:11092", 5},
 	}
 	return replicaLocationList
 }
