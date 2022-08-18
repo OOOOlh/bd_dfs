@@ -72,7 +72,11 @@ func (client *Client) PutFile(fPath string) {
 		// 存储在缓冲区中
 		CreateFile(client.TempStoreLocation + "/" + file.Name + "/chunk-" + strconv.Itoa(i))
 		//先在客户端本地分割
-		FastWrite(client.TempStoreLocation+"/"+file.Name+"/chunk-"+strconv.Itoa(i), data[i*SPLIT_UNIT:(i+1)*SPLIT_UNIT])
+		if len(data) < SPLIT_UNIT {
+			FastWrite(client.TempStoreLocation+"/"+file.Name+"/chunk-"+strconv.Itoa(i), data[i*SPLIT_UNIT:])
+		} else {
+			FastWrite(client.TempStoreLocation+"/"+file.Name+"/chunk-"+strconv.Itoa(i), data[i*SPLIT_UNIT:(i+1)*SPLIT_UNIT])
+		}
 		// 发送到datanode进行存储
 		PutChunk(client.TempStoreLocation+"/"+file.Name+"/chunk-"+strconv.Itoa(i), file.Chunks[i].ReplicaLocationList)
 	}
@@ -102,6 +106,11 @@ func (client *Client) GetFile(fName string) { //, fName string
 	if err != nil {
 		fmt.Println("XXX Client error at Get file", err.Error())
 		TDFSLogger.Fatal("XXX Client error at Get file", err)
+	}
+	if response.StatusCode == http.StatusNotFound {
+		fmt.Printf("Client file=%v not found\n", fName)
+		TDFSLogger.Printf("Client file=%v not found", fName)
+		return
 	}
 	defer response.Body.Close()
 

@@ -55,9 +55,35 @@ func (namenode *NameNode) Run() {
 	router.GET("/getfile/:filename", func(c *gin.Context) {
 		filename := c.Param("filename")
 		fmt.Println("$ getfile ...", filename)
-		file := namenode.NameSpace[filename]
+		paths := strings.Split(filename, "/")
+		node := namenode.RootFolder
+		for i, path := range paths {
+			if path == "." || path == "" {
+				continue
+			}
+			// 尝试匹配文件名，未匹配上返回报错
+			if i == len(paths) - 1 {
+				for _, file := range node.Files {
+					if path == file.Name {
+						fmt.Printf("found file=%+v", file)
+						c.JSON(http.StatusOK, file)
+					}
+				}
+				fmt.Printf("file not found")
+				c.JSON(http.StatusNotFound, nil)
+			}
+			// 尝试匹配文件夹路径，未匹配上返回报错
+			for _, folder := range node.Folder {
+				if path == folder.Name {
+					node = folder
+					break
+				}
+				fmt.Printf("dir not found")
+				c.JSON(http.StatusNotFound, nil)
+			}
+		}
 
-		c.JSON(http.StatusOK, file)
+		c.JSON(http.StatusNotFound, nil)
 	})
 
 	router.GET("/delfile/:filename", func(c *gin.Context) {
@@ -150,6 +176,12 @@ func (namenode *NameNode) SetConfig(location string, dnnumber int, redundance in
 	}
 	ns := NameSpaceStruct{}
 	namenode.NameSpace = ns
+	fn := &FileFolderNode{
+		Name:   "root",
+		Folder: make([]*FileFolderNode, 0),
+		Files:  make([]*FileNode, 0),
+	}
+	namenode.RootFolder = fn
 	namenode.Port = res
 	namenode.Location = location
 	namenode.DNNumber = dnnumber

@@ -129,6 +129,7 @@ type Config struct {
 
 type NameNode struct {
 	NameSpace NameSpaceStruct
+	RootFolder *FileFolderNode
 	Location  string
 	Port      int
 	//DataNode数量
