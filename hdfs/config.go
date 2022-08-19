@@ -92,27 +92,27 @@ type File struct {
 
 //  /root/hdfs/dn/nn/
 // 根据目录结构查找文件列表
-func (Node *Folder) GetFileList(filePath string) []*File {
+func (Node *Folder) GetFileList(filePath string) ([]*File, []*Folder) {
 	path := strings.Split(filePath, "/")[1:]
 	index := 0
 	for index < len(path) {
 		if Node.Name == path[index] {
 			index++
 			if index >= len(path) {
-				return Node.Files
+				return Node.Files, Node.Folder
 			}
 			for _, node := range Node.Folder {
 				if node.Name == path[index] {
 					Node = node
 					index++
 					if index >= len(path) {
-						return Node.Files
+						return Node.Files, Node.Folder
 					}
 				}
 			}
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 // 根据目录获取文件节点信息

@@ -33,10 +33,10 @@ func (namenode *NameNode) Run() {
 		//例如：path = /root/temp/dd/1.png
 		//遍历所有文件夹，/root/下的所有文件夹
 		folder := &namenode.NameSpace.Folder
-		for _, p := range (path[2 : len(path)-1]) {
-			fmt.Println(p)
+		for _, p := range path[2 : len(path)-1] {
+			//fmt.Println(p)
 			exist := false
-			for _, n = range (*folder) {
+			for _, n = range *folder {
 				if p == n.Name {
 					exist = true
 					break
@@ -60,13 +60,13 @@ func (namenode *NameNode) Run() {
 		var exist bool
 		var changed bool = true
 		var f *File
-		for _, f = range (n.Files) {
+		for _, f = range n.Files {
 			exist = false
 			//找到目标文件
 			if f.Name == file.Name {
 				exist = true
 				//校验文件是否改变
-				if (f.Info == file.Info) {
+				if f.Info == file.Info {
 					//如果没改变，client就不用向datanode改变信息
 					TDFSLogger.Println("namenode: file exists and not changed")
 					changed = false
@@ -132,17 +132,36 @@ func (namenode *NameNode) Run() {
 	//	c.JSON(http.StatusOK, file)
 	//})
 
-	router.GET("/getfolder/:foldername", func(c *gin.Context) {
-		foldername := c.Param("foldername")
-		fmt.Println("$ getfolder ...", foldername)
-		TDFSLogger.Fatal("$ getfolder ...", foldername)
-		files := namenode.NameSpace.GetFileList(foldername)
+	router.POST("/getfolder", func(context *gin.Context) {
+		b, _ := context.GetRawData() // 从c.Request.Body读取请求数据
+		var dataMap map[string]string
+		if err := json.Unmarshal(b, &dataMap); err != nil {
+			fmt.Println("namenode put json to byte error", err)
+		}
+		fmt.Println("there:")
+		fmt.Println(dataMap["fname"])
+		files, folders := namenode.NameSpace.GetFileList(dataMap["fname"])
 		var filenames []string
 		for i := 0; i < len(files); i++ {
 			filenames = append(filenames, files[i].Name)
 		}
-		c.JSON(http.StatusOK, filenames)
+		fmt.Println("folder:")
+		fmt.Println(folders[0].Name)
+		context.JSON(http.StatusOK, filenames)
+		//context.JSON(http.StatusOK, 1)
 	})
+
+	//router.GET("/getfolder/:foldername", func(c *gin.Context) {
+	//	foldername := c.Param("foldername")
+	//	fmt.Println("$ getfolder ...", foldername)
+	//	TDFSLogger.Fatal("$ getfolder ...", foldername)
+	//	files := namenode.NameSpace.GetFileList(foldername)
+	//	var filenames []string
+	//	for i := 0; i < len(files); i++ {
+	//		filenames = append(filenames, files[i].Name)
+	//	}
+	//	c.JSON(http.StatusOK, filenames)
+	//})
 
 	//创建文件目录
 	router.POST("/mkdir", func(context *gin.Context) {

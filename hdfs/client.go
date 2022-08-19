@@ -44,7 +44,7 @@ func (client *Client) PutFile(localPath string, remotePath string) {
 		Name:   f.Name(),
 		Length: f.Size(),
 
-		Info: hashStr,
+		Info:       hashStr,
 		RemotePath: remotePath,
 	}
 
@@ -189,7 +189,16 @@ func (client *Client) GetFolder(fName string) { //fName string
 	fmt.Println("****************************************")
 	fmt.Printf("*** Getting from TDFS [NameNode: %s] to ${GOPATH}/%s )\n", client.NameNodeAddr, fName) //  as %s , fName
 
-	response, err := http.Get(client.NameNodeAddr + "/getfolder/" + fName)
+	//response, err := http.Get(client.NameNodeAddr + "/getfolder/" + fName)
+
+	data := map[string]string{"fname": fName}
+	d, err := json.Marshal(data)
+	if err != nil {
+		fmt.Println("json to byte[] error", err)
+	}
+	reader := bytes.NewReader(d)
+	response, err := http.Post(client.NameNodeAddr+"/getfolder", "application/json", reader)
+
 	if err != nil {
 		fmt.Println("Client error at Get folder", err.Error())
 		TDFSLogger.Fatal("Client error at Get folder", err)

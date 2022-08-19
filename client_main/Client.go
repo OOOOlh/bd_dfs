@@ -40,7 +40,11 @@ func main() {
 	//filenameOfPut := flag.String("putfile", "unknow", "the filename of the file you want to put") // SmallFile.txt
 	filenameOfDel := flag.String("delfile", "unknow", "the filename of the file you want to del")
 
-	filenameOfMkdir := flag.String("mkdir", "unknow", "the folder you want to make")
+	folderNameOfGet := flag.String("getfolder", "unknow", "the name of folder you want to check")
+
+	curFolder := flag.String("curFolder", "unknow", "the folder you want to make")
+	newFolder := flag.String("newFolder", "unknow", "the name of folder you want to check")
+
 	flag.Parse()
 	// 上传
 	//if *filenameOfPut != "unknow" {
@@ -52,38 +56,25 @@ func main() {
 		client.GetFile(*filenameOfGet)
 		fmt.Println(" -Getfile for ", *filenameOfGet)
 	}
-	folderNameOfGet := flag.String("getfolder", "unknow", "the name of folder you want to check")
-	flag.Parse()
-
-	// if *filenameOfPut != "unknow" {
-	// 	client.PutFile(*filenameOfPut)
-	// 	fmt.Println(" -PutFile for ", *filenameOfPut)
-	// }
 
 	//Put
 	if *localFilePath != "unknow" && *remoteFilePath != "unknow" {
 		client.PutFile(*localFilePath, *remoteFilePath)
 		fmt.Printf(" PutFile %s to %s ", *localFilePath, *remoteFilePath)
 	}
-
-	// if *filenameOfGet != "unknow" {
-	// 	client.GetFile(*filenameOfGet)
-	// 	fmt.Println(" -Getfile for ", *filenameOfGet)
-	// }
 	// 删除
 	if *filenameOfDel != "unknow" {
 		client.DelFile(*filenameOfDel)
 		fmt.Println(" -Delfile for ", *filenameOfDel)
 	}
-	// 获取当前目录文件列表
-	// 当前目录下创建目录
-	// 根据文件路径获取文件信息
 
-	if *filenameOfMkdir != "unknow" {
-		client.Mkdir("/root", "data")
-		fmt.Println("-Mkdir for ", *filenameOfMkdir)
+	// 创建目录
+	if *curFolder != "unknow" {
+		client.Mkdir(*curFolder, *newFolder)
+		fmt.Println("-Mkdir for ", *curFolder)
 	}
 
+	// 获取指定目录下的文件列表
 	if *folderNameOfGet != "unknow" {
 		client.GetFolder(*folderNameOfGet)
 		fmt.Println(" -Getfolder for ", *folderNameOfGet)
