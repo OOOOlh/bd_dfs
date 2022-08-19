@@ -16,3 +16,7 @@
 # vendor/
 
 .idea/
+
+go.sum
+TDFSLog.txt
+datanode/

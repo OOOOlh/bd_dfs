@@ -17,94 +17,76 @@ import (
 func (namenode *NameNode) Run() {
 	router := gin.Default()
 
-	router.POST("/put", func(c *gin.Context) {
-		b, _ := c.GetRawData() // 从c.Request.Body读取请求数据
-		file := &File{}
-		// 反序列化
-		if len(b) == 0 {
-			fmt.Println("put request body为空")
-		}
-		if err := json.Unmarshal(b, file); err != nil {
-			fmt.Println("namenode put json to byte error", err)
-		}
-		var chunkNum int
-		var fileLength int = int(file.Length)
-		// chunkNum = file.Length/
-		if file.Length%int64(SPLIT_UNIT) == 0 {
-			chunkNum = fileLength / SPLIT_UNIT
-			file.Offset_LastChunk = 0
-		} else {
-			chunkNum = fileLength/SPLIT_UNIT + 1
-			file.Offset_LastChunk = chunkNum*SPLIT_UNIT - fileLength
-		}
-		for i := 0; i < int(chunkNum); i++ {
-			replicaLocationList := namenode.AllocateChunk()
-			fileChunk := &FileChunk{}
-			file.Chunks = append(file.Chunks, *fileChunk)
-			file.Chunks[i].ReplicaLocationList = replicaLocationList
-		}
-
-		ns := namenode.NameSpace
-		//对应每一个文件，一个文件对应一个命名空间
-		ns[file.Name] = *file
-		namenode.NameSpace = ns
-
-		c.JSON(http.StatusOK, file)
-	})
-
+	//router.POST("/put", func(c *gin.Context) {
+	//	b, _ := c.GetRawData() // 从c.Request.Body读取请求数据
+	//	file := &File{}
+	//	// 反序列化
+	//	if len(b) == 0 {
+	//		fmt.Println("put request body为空")
+	//	}
+	//	if err := json.Unmarshal(b, file); err != nil {
+	//		fmt.Println("namenode put json to byte error", err)
+	//	}
+	//	var chunkNum int
+	//	var fileLength = int(file.Length)
+	//	// chunkNum = file.Length/
+	//	if file.Length%int64(SPLIT_UNIT) == 0 {
+	//		chunkNum = fileLength / SPLIT_UNIT
+	//		file.OffsetLastChunk = 0
+	//	} else {
+	//		chunkNum = fileLength/SPLIT_UNIT + 1
+	//		file.OffsetLastChunk = chunkNum*SPLIT_UNIT - fileLength
+	//	}
+	//	for i := 0; i < int(chunkNum); i++ {
+	//		replicaLocationList := namenode.AllocateChunk()
+	//		fileChunk := &FileChunk{}
+	//		file.Chunks = append(file.Chunks, *fileChunk)
+	//		file.Chunks[i].ReplicaLocationList = replicaLocationList
+	//	}
+	//
+	//	ns := namenode.NameSpace
+	//	//对应每一个文件，一个文件对应一个命名空间
+	//	ns[file.Name] = *file
+	//	namenode.NameSpace = ns
+	//
+	//	c.JSON(http.StatusOK, file)
+	//})
+	//
 	router.GET("/getfile/:filename", func(c *gin.Context) {
 		filename := c.Param("filename")
 		fmt.Println("$ getfile ...", filename)
-		paths := strings.Split(filename, "/")
-		node := namenode.RootFolder
-		for i, path := range paths {
-			if path == "." || path == "" {
-				continue
-			}
-			// 尝试匹配文件名，未匹配上返回报错
-			if i == len(paths) - 1 {
-				for _, file := range node.Files {
-					if path == file.Name {
-						fmt.Printf("found file=%+v", file)
-						c.JSON(http.StatusOK, file)
-					}
-				}
-				fmt.Printf("file not found")
-				c.JSON(http.StatusNotFound, nil)
-			}
-			// 尝试匹配文件夹路径，未匹配上返回报错
-			for _, folder := range node.Folder {
-				if path == folder.Name {
-					node = folder
-					break
-				}
-				fmt.Printf("dir not found")
-				c.JSON(http.StatusNotFound, nil)
-			}
-		}
-
-		c.JSON(http.StatusNotFound, nil)
-	})
-
-	router.GET("/delfile/:filename", func(c *gin.Context) {
-		filename := c.Param("filename")
-		fmt.Println("$ delfile ...", filename)
-		file := namenode.NameSpace[filename]
-		for i := 0; i < len(file.Chunks); i++ {
-			namenode.DelChunk(file, i)
+		TDFSLogger.Println("filename")
+		node := namenode.NameSpace
+		file, err := node.GetFileNode(filename)
+		if err != nil {
+			TDFSLogger.Printf("get file=%v error=%v\n", filename, err.Error())
+			fmt.Printf("get file=%v error=%v\n", filename, err.Error())
+			c.JSON(http.StatusNotFound, err.Error())
 		}
 		c.JSON(http.StatusOK, file)
 	})
 
-	// router.DELETE GET
-	// router.GET("/delfile/:filename", func(c *gin.Context) {
-	// 	filename := c.Param("filename")
-	// 	TDFSLogger.Fatal(filename)
-	// 	file := namenode.NameSpace[filename]
-	// 	TDFSLogger.Fatal(file.Name)
-	// 	fmt.Println(file)
-	// 	c.JSON(http.StatusOK, file)
-	// })
+	//
+	//router.GET("/delfile/:filename", func(c *gin.Context) {
+	//	filename := c.Param("filename")
+	//	fmt.Println("$ delfile ...", filename)
+	//	file := namenode.NameSpace[filename]
+	//	for i := 0; i < len(file.Chunks); i++ {
+	//		namenode.DelChunk(file, i)
+	//	}
+	//	c.JSON(http.StatusOK, file)
+	//})
+
+	router.GET("/getfolder/:foldername", func(c *gin.Context) {
+		foldername := c.Param("foldername")
+		fmt.Println("$ getfolder ...", foldername)
+		files := namenode.NameSpace.GetFileList(foldername)
+		var filenames []string
+		for i := 0; i < len(files); i++ {
+			filenames = append(filenames, files[i].Name)
+		}
+		c.JSON(http.StatusOK, filenames)
+	})
 
 	router.Run(":" + strconv.Itoa(namenode.Port))
 }
@@ -174,14 +156,12 @@ func (namenode *NameNode) SetConfig(location string, dnnumber int, redundance in
 		fmt.Println("XXX NameNode error at Atoi parse Port", err.Error())
 		TDFSLogger.Fatal("XXX NameNode error: ", err)
 	}
-	ns := NameSpaceStruct{}
-	namenode.NameSpace = ns
-	fn := &FileFolderNode{
+	ns := &Folder{
 		Name:   "root",
-		Folder: make([]*FileFolderNode, 0),
-		Files:  make([]*FileNode, 0),
+		Folder: make([]*Folder, 0),
+		Files:  make([]*File, 0),
 	}
-	namenode.RootFolder = fn
+	namenode.NameSpace = ns
 	namenode.Port = res
 	namenode.Location = location
 	namenode.DNNumber = dnnumber
