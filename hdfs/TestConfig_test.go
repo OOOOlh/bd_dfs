@@ -9,7 +9,7 @@ func getNodes() *Folder {
 		"root",
 		[]*Folder{},
 		[]*File{{
-			"data",
+			"data.txt",
 			1024,
 			[]FileChunk{},
 			0,
@@ -27,12 +27,11 @@ func TestGetFileList(t *testing.T) {
 	}
 }
 
-func TestGetFile(t *testing.T) {
+func TestGetFileNode(t *testing.T) {
 	Nodes := getNodes()
-	File := Nodes.GetFileNode("/root/data.txt")
-	if File != nil {
-		t.Log(File.Name)
-	}
+	File, err := Nodes.GetFileNode("root/data.txt")
+	t.Log(File)
+	t.Log(err)
 }
 
 //func TestFunc(t *testing.T) {

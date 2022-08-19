@@ -1,6 +1,7 @@
 package hdfs
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -62,33 +63,30 @@ func (Node *Folder) GetFileList(filePath string) []*File {
 }
 
 // 根据目录获取文件节点信息
-func (Node *Folder) GetFileNode(filePath string) *File {
-	// /root/folder1/data.txt  -> [root, folder1, data.txt]
-	path := strings.Split(filePath, "/")[1:]
-	if path[0] != "root" {
-		return nil
+func (Node *Folder) GetFileNode(filePath string) (*File, error) {
+	// root/folder1/data.txt  -> [root, folder1, data.txt]
+	path := strings.Split(filePath, "/")
+	if path[0] != Node.Name {
+		return nil, fmt.Errorf("node name mismatch")
 	}
+	node := Node
 	for _, step := range path[1 : len(path)-1] {
-		flag := false
-		for _, folder := range Node.Folder {
+		for _, folder := range node.Folder {
 			if folder.Name == step {
-				Node = folder
-				flag = true
+				node = folder
 				break
 			}
 		}
 		// 没有该目录
-		if flag {
-			return nil
-		}
+		return nil, fmt.Errorf("folder not found")
 	}
 	for _, file := range Node.Files {
-		if file.Name == strings.Split(path[len(path)-1], ".")[0] {
-			return file
+		if file.Name == path[len(path)-1] {
+			return file, nil
 		}
 	}
 	//没有该文件
-	return nil
+	return nil, fmt.Errorf("file not found")
 }
 
 type FileToDataNode struct {
@@ -117,7 +115,7 @@ type Config struct {
 }
 
 type NameNode struct {
-	NameSpace Folder
+	NameSpace *Folder
 	Location  string
 	Port      int
 	//DataNode数量
