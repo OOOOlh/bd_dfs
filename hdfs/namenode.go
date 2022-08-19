@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 
@@ -189,23 +188,6 @@ func (namenode *NameNode) AllocateChunk() (rlList [REDUNDANCE]ReplicaLocation) {
 	return rlList
 }
 
-func (namenode *NameNode) Reset() {
-	// CleanFile("TinyDFS/DataNode1/chunk-"+strconv.Itoa(i))
-	fmt.Println("# Reset...")
-
-	err := os.RemoveAll(namenode.NAMENODE_DIR + "/")
-	if err != nil {
-		fmt.Println("XXX NameNode error at RemoveAll dir", err.Error())
-		TDFSLogger.Fatal("XXX NameNode error: ", err)
-	}
-
-	// err = os.MkdirAll(namenode.NAMENODE_DIR, 0777)
-	// if err != nil {
-	// 	fmt.Println("XXX NameNode error at MkdirAll", err.Error())
-	// 	TDFSLogger.Fatal("XXX NameNode error: ", err)
-	// }
-}
-
 func (namenode *NameNode) SetConfig(location string, dnnumber int, redundance int, dnlocations []string) {
 	temp := strings.Split(location, ":")
 	res, err := strconv.Atoi(temp[2])
@@ -213,12 +195,11 @@ func (namenode *NameNode) SetConfig(location string, dnnumber int, redundance in
 		fmt.Println("XXX NameNode error at Atoi parse Port", err.Error())
 		TDFSLogger.Fatal("XXX NameNode error: ", err)
 	}
-	ns := &Folder{
+	namenode.NameSpace = &Folder{
 		Name:   "root",
 		Folder: make([]*Folder, 0),
 		Files:  make([]*File, 0),
 	}
-	namenode.NameSpace = ns
 	namenode.Port = res
 	namenode.Location = location
 	namenode.DNNumber = dnnumber
