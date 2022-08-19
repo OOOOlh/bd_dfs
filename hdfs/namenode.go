@@ -34,7 +34,7 @@ func (namenode *NameNode) Run() {
 		var n *Folder
 		//例如：path = /root/temp/dd/1.png
 		//遍历所有文件夹，/root/下的所有文件夹
-		folder := &namenode.FsImage.Folder
+		folder := &namenode.NameSpace.Folder
 		for _, p := range(path[2:len(path) - 1]){
 			fmt.Println(p)
 			exist := false
@@ -109,13 +109,20 @@ func (namenode *NameNode) Run() {
 		c.JSON(http.StatusOK, file)
 	})
 	//
-	//router.GET("/getfile/:filename", func(c *gin.Context) {
-	//	filename := c.Param("filename")
-	//	fmt.Println("$ getfile ...", filename)
-	//	file := namenode.NameSpace[filename]
-	//
-	//	c.JSON(http.StatusOK, file)
-	//})
+	router.GET("/getfile/:filename", func(c *gin.Context) {
+		filename := c.Param("filename")
+		fmt.Println("$ getfile ...", filename)
+		TDFSLogger.Println("filename")
+		node := namenode.NameSpace
+		file, err := node.GetFileNode(filename)
+		if err != nil {
+			TDFSLogger.Printf("get file=%v error=%v\n", filename, err.Error())
+			fmt.Printf("get file=%v error=%v\n", filename, err.Error())
+			c.JSON(http.StatusNotFound, err.Error())
+		}
+		c.JSON(http.StatusOK, file)
+	})
+
 	//
 	//router.GET("/delfile/:filename", func(c *gin.Context) {
 	//	filename := c.Param("filename")
@@ -206,9 +213,12 @@ func (namenode *NameNode) SetConfig(location string, dnnumber int, redundance in
 		fmt.Println("XXX NameNode error at Atoi parse Port", err.Error())
 		TDFSLogger.Fatal("XXX NameNode error: ", err)
 	}
-	namenode.FsImage = Folder{
-		Name: "root",
+	ns := &Folder{
+		Name:   "root",
+		Folder: make([]*Folder, 0),
+		Files:  make([]*File, 0),
 	}
+	namenode.NameSpace = ns
 	namenode.Port = res
 	namenode.Location = location
 	namenode.DNNumber = dnnumber
