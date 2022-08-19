@@ -163,6 +163,7 @@ func (client *Client) GetFolder(fName string) { //fName string
 		fmt.Println("Client error at read response data", err.Error())
 		TDFSLogger.Fatal("Client error at read response data", err)
 	}
+
 	var folder []string
 	if err = json.Unmarshal(bytes, &folder); err != nil {
 		fmt.Println("byte[] to json error", err)
