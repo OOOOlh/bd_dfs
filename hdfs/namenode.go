@@ -3,11 +3,12 @@ package hdfs
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 /*
@@ -17,40 +18,96 @@ import (
 func (namenode *NameNode) Run() {
 	router := gin.Default()
 
-	//router.POST("/put", func(c *gin.Context) {
-	//	b, _ := c.GetRawData() // 从c.Request.Body读取请求数据
-	//	file := &File{}
-	//	// 反序列化
-	//	if len(b) == 0 {
-	//		fmt.Println("put request body为空")
-	//	}
-	//	if err := json.Unmarshal(b, file); err != nil {
-	//		fmt.Println("namenode put json to byte error", err)
-	//	}
-	//	var chunkNum int
-	//	var fileLength = int(file.Length)
-	//	// chunkNum = file.Length/
-	//	if file.Length%int64(SPLIT_UNIT) == 0 {
-	//		chunkNum = fileLength / SPLIT_UNIT
-	//		file.OffsetLastChunk = 0
-	//	} else {
-	//		chunkNum = fileLength/SPLIT_UNIT + 1
-	//		file.OffsetLastChunk = chunkNum*SPLIT_UNIT - fileLength
-	//	}
-	//	for i := 0; i < int(chunkNum); i++ {
-	//		replicaLocationList := namenode.AllocateChunk()
-	//		fileChunk := &FileChunk{}
-	//		file.Chunks = append(file.Chunks, *fileChunk)
-	//		file.Chunks[i].ReplicaLocationList = replicaLocationList
-	//	}
-	//
-	//	ns := namenode.NameSpace
-	//	//对应每一个文件，一个文件对应一个命名空间
-	//	ns[file.Name] = *file
-	//	namenode.NameSpace = ns
-	//
-	//	c.JSON(http.StatusOK, file)
-	//})
+	router.POST("/put", func(c *gin.Context) {
+		b, _ := c.GetRawData() // 从c.Request.Body读取请求数据
+		file := &File{}
+		// 反序列化
+		if len(b) == 0 {
+			fmt.Println("put request body为空")
+		}
+		if err := json.Unmarshal(b, file); err != nil {
+			fmt.Println("namenode put json to byte error", err)
+		}
+
+		path := strings.Split(file.RemotePath, "/")
+
+		var n *Folder
+		//例如：path = /root/temp/dd/1.png
+		//遍历所有文件夹，/root/下的所有文件夹
+		folder := &namenode.FsImage.Folder
+		for _, p := range(path[2:len(path) - 1]){
+			fmt.Println(p)
+			exist := false
+			for _, n = range(*folder){
+				if p == n.Name{
+					exist = true
+					break
+				}
+			}
+			//如果不存在，就新建一个文件夹
+			if !exist{
+				TDFSLogger.Println("namenode: file not exist")
+				var tempFloder Folder = Folder{}
+				tempFloder.Name = p
+				*folder = append(*folder, &tempFloder)
+				//下一层
+				folder = &(*folder)[len(*folder) - 1].Folder
+				n = &tempFloder
+			}else{
+				folder = &n.Folder
+			}
+			
+		}
+
+		var exist bool
+		var changed bool = true
+		var f *File
+		for _, f = range(n.Files){
+			exist = false
+			//找到目标文件
+			if f.Name == file.Name{
+				exist = true
+				//校验文件是否改变
+				if(f.Info == file.Info){
+					//如果没改变，client就不用向datanode改变信息
+					TDFSLogger.Println("namenode: file exists and not changed")
+					changed = false
+				}
+				break
+			}
+		}
+
+		var chunkNum int
+		var fileLength = int(file.Length)
+		// chunkNum = file.Length/
+		if file.Length%int64(SPLIT_UNIT) == 0 {
+			chunkNum = fileLength / SPLIT_UNIT
+			file.OffsetLastChunk = 0
+		} else {
+			chunkNum = fileLength/SPLIT_UNIT + 1
+			file.OffsetLastChunk = chunkNum*SPLIT_UNIT - fileLength
+		}
+		for i := 0; i < int(chunkNum); i++ {
+			replicaLocationList := namenode.AllocateChunk()
+			fileChunk := &FileChunk{}
+			file.Chunks = append(file.Chunks, *fileChunk)
+			file.Chunks[i].ReplicaLocationList = replicaLocationList
+		}
+	
+		//如果不存在，就新建
+		if !exist{
+			n.Files = append(n.Files, file)
+		}else if changed{
+			//存在但需要覆盖
+			TDFSLogger.Println("namenode: file exists and changed")
+			f = file
+		}
+		if !changed{
+			file = &File{}
+		}
+		//对应每一个文件，一个文件对应一个命名空间
+		c.JSON(http.StatusOK, file)
+	})
 	//
 	//router.GET("/getfile/:filename", func(c *gin.Context) {
 	//	filename := c.Param("filename")
@@ -70,16 +127,16 @@ func (namenode *NameNode) Run() {
 	//	c.JSON(http.StatusOK, file)
 	//})
 
-	router.GET("/getfolder/:foldername", func(c *gin.Context) {
-		foldername := c.Param("foldername")
-		fmt.Println("$ getfolder ...", foldername)
-		files := namenode.NameSpace.GetFileList(foldername)
-		var filenames []string
-		for i := 0; i < len(files); i++ {
-			filenames = append(filenames, files[i].Name)
-		}
-		c.JSON(http.StatusOK, filenames)
-	})
+	// router.GET("/getfolder/:foldername", func(c *gin.Context) {
+	// 	foldername := c.Param("foldername")
+	// 	fmt.Println("$ getfolder ...", foldername)
+	// 	files := namenode.NameSpace.GetFileList(foldername)
+	// 	var filenames []string
+	// 	for i := 0; i < len(files); i++ {
+	// 		filenames = append(filenames, files[i].Name)
+	// 	}
+	// 	c.JSON(http.StatusOK, filenames)
+	// })
 
 	router.Run(":" + strconv.Itoa(namenode.Port))
 }
@@ -135,11 +192,11 @@ func (namenode *NameNode) Reset() {
 		TDFSLogger.Fatal("XXX NameNode error: ", err)
 	}
 
-	err = os.MkdirAll(namenode.NAMENODE_DIR, 0777)
-	if err != nil {
-		fmt.Println("XXX NameNode error at MkdirAll", err.Error())
-		TDFSLogger.Fatal("XXX NameNode error: ", err)
-	}
+	// err = os.MkdirAll(namenode.NAMENODE_DIR, 0777)
+	// if err != nil {
+	// 	fmt.Println("XXX NameNode error at MkdirAll", err.Error())
+	// 	TDFSLogger.Fatal("XXX NameNode error: ", err)
+	// }
 }
 
 func (namenode *NameNode) SetConfig(location string, dnnumber int, redundance int, dnlocations []string) {
@@ -149,8 +206,9 @@ func (namenode *NameNode) SetConfig(location string, dnnumber int, redundance in
 		fmt.Println("XXX NameNode error at Atoi parse Port", err.Error())
 		TDFSLogger.Fatal("XXX NameNode error: ", err)
 	}
-	ns := Folder{}
-	namenode.NameSpace = ns
+	namenode.FsImage = Folder{
+		Name: "root",
+	}
 	namenode.Port = res
 	namenode.Location = location
 	namenode.DNNumber = dnnumber

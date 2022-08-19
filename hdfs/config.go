@@ -9,7 +9,7 @@ import (
 /** Configurations for ALL Mode **/
 const SPLIT_UNIT int = 1000
 const REDUNDANCE int = 2
-const CHUNKTOTAL int = 100
+// const CHUNKTOTAL int = 400
 
 // Chunk 一律表示逻辑概念，表示文件块
 // Replica 表示文件块副本，是实际存储的
@@ -22,10 +22,13 @@ type ChunkUnit []byte // SPLIT_UNIT
 // 	ChunkNum int
 // }
 
+//父文件夹
 // DataNode的TreeStruct
 type Folder struct {
 	Name   string
+	//子文件夹
 	Folder []*Folder
+	//子文件
 	Files  []*File
 }
 
@@ -35,7 +38,14 @@ type File struct {
 	Chunks          []FileChunk
 	OffsetLastChunk int
 	Info            string // file info
+
+	RemotePath string
 }
+
+func (Node *Folder) PutFile(filepath string){
+
+}
+
 
 // 根据目录结构查找文件列表
 func (Node *Folder) GetFileList(filePath string) []*File {
@@ -116,8 +126,10 @@ type Config struct {
 	NameNodeAddr string
 }
 
+//限制文件夹层数为3
+//最长比如是/root/bd_hdfs/auto.png
 type NameNode struct {
-	NameSpace Folder
+	FsImage Folder
 	Location  string
 	Port      int
 	//DataNode数量

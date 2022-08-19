@@ -14,6 +14,7 @@ func getNodes() *Folder {
 			[]FileChunk{},
 			0,
 			"",
+			"",
 		}},
 	}
 }

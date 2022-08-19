@@ -95,8 +95,6 @@ func (datanode *DataNode) Run() {
 		fmt.Println("Parsed num: ", num)
 
 		CleanFile(datanode.DATANODE_DIR + "/chunk-" + strconv.Itoa(num))
-		// CleanFile(datanode.DATANODE_DIR+"/achunkhashs/chunkhash-"+strconv.Itoa(num))
-		// DeleteFile(datanode.DATANODE_DIR + "/achunkhashs/chunkhash-" + strconv.Itoa(num))
 		CleanFile(datanode.DATANODE_DIR + "/achunkhashs/chunkhash-" + strconv.Itoa(num))
 
 		c.String(http.StatusOK, "delete DataNode{*}/chunk-"+strconv.Itoa(num)+" SUCCESS")
@@ -144,7 +142,7 @@ func (datanode *DataNode) SetConfig(location string, storageTotal int) {
 
 	datanode.ChunkAvail = append(datanode.ChunkAvail, 0)
 	for i := 1; i < datanode.StorageAvail; i++ {
-		datanode.ChunkAvail = append(datanode.ChunkAvail, 100-i)
+		datanode.ChunkAvail = append(datanode.ChunkAvail, datanode.StorageTotal-i)
 	}
 
 	datanode.LastEdit = time.Now().Unix()
@@ -162,7 +160,7 @@ func (datanode *DataNode) SetConfig(location string, storageTotal int) {
 func (datanode *DataNode) Reset() {
 	var i int = 0
 	for i < datanode.StorageTotal {
-		CleanFile("TinyDFS/DataNode1/chunk-" + strconv.Itoa(i))
+		CleanFile(datanode.DATANODE_DIR + "/chunk-" + strconv.Itoa(i))
 		i++
 	}
 
@@ -202,21 +200,4 @@ func (datanode *DataNode) ShowInfo() {
 	fmt.Printf("StorageAvail: %d\n", datanode.StorageAvail)
 	fmt.Printf("ChunkAvail: %d\n", datanode.ChunkAvail)
 	fmt.Printf("LastEdit: %d\n", datanode.LastEdit)
-}
-
-func (datanode *DataNode) RecvChunkAndStore(ReplicaList []ReplicaLocation, chunkData ChunkUnit) {
-	var i int = 0
-	for i < len(ReplicaList) {
-		if ReplicaList[i].ServerLocation == datanode.Location {
-			break
-		}
-		i++
-	}
-	chunkFileName := "TinyDFS/DataNode1/chunk-" + strconv.Itoa(ReplicaList[i].ReplicaNum) //datanode.chunkAvail[0]
-	datanode.ChunkAvail = datanode.ChunkAvail[1:]
-	FastWrite(chunkFileName, chunkData)
-	fmt.Printf("> Replica data finish stored in %s.\n", chunkFileName)
-	if i+1 < len(ReplicaList) {
-		fmt.Printf("> Next, replica will send to %s\n", ReplicaList[i+1].ServerLocation)
-	}
 }

@@ -11,7 +11,7 @@ import "hdfs/hdfs"
 
 const DN3_DIR string = "./datanode"
 const DN3_LOCATION string = "http://localhost:11093"
-const DN3_CAPACITY int = 100
+const DN3_CAPACITY int = 400
 
 func main() {
 	var dn3 hdfs.DataNode
