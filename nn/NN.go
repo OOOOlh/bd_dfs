@@ -11,7 +11,7 @@ func main() {
 	var nn hdfs.NameNode
 	nn.NAMENODE_DIR = NN_DIR
 	dnlocations := []string{"http://localhost:11091", "http://localhost:11092", "http://localhost:11093"}
-	nn.Reset()
+	// nn.Reset()
 	nn.SetConfig(NN_LOCATION, NN_DNNumber, rEDUNDANCE, dnlocations)
 	//nn.GetDNMeta() // UpdateMeta
 	nn.Run()

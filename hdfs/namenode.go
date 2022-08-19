@@ -3,11 +3,11 @@ package hdfs
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 /*
@@ -26,15 +26,64 @@ func (namenode *NameNode) Run() {
 		if err := json.Unmarshal(b, file); err != nil {
 			fmt.Println("namenode put json to byte error", err)
 		}
+
+		path := strings.Split(file.RemotePath, "/")
+
+		var n *Folder
+		//例如：path = /root/temp/dd/1.png
+		//遍历所有文件夹，/root/下的所有文件夹
+		folder := &namenode.NameSpace.Folder
+		for _, p := range (path[2 : len(path)-1]) {
+			fmt.Println(p)
+			exist := false
+			for _, n = range (*folder) {
+				if p == n.Name {
+					exist = true
+					break
+				}
+			}
+			//如果不存在，就新建一个文件夹
+			if !exist {
+				TDFSLogger.Println("namenode: file not exist")
+				var tempFloder Folder = Folder{}
+				tempFloder.Name = p
+				*folder = append(*folder, &tempFloder)
+				//下一层
+				folder = &(*folder)[len(*folder)-1].Folder
+				n = &tempFloder
+			} else {
+				folder = &n.Folder
+			}
+
+		}
+
+		var exist bool
+		var changed bool = true
+		var f *File
+		for _, f = range (n.Files) {
+			exist = false
+			//找到目标文件
+			if f.Name == file.Name {
+				exist = true
+				//校验文件是否改变
+				if (f.Info == file.Info) {
+					//如果没改变，client就不用向datanode改变信息
+					TDFSLogger.Println("namenode: file exists and not changed")
+					changed = false
+				}
+				break
+			}
+		}
+
 		var chunkNum int
-		var fileLength int = int(file.Length)
+		var fileLength = int(file.Length)
 		// chunkNum = file.Length/
 		if file.Length%int64(SPLIT_UNIT) == 0 {
 			chunkNum = fileLength / SPLIT_UNIT
-			file.Offset_LastChunk = 0
+			file.OffsetLastChunk = 0
 		} else {
 			chunkNum = fileLength/SPLIT_UNIT + 1
-			file.Offset_LastChunk = chunkNum*SPLIT_UNIT - fileLength
+			file.OffsetLastChunk = chunkNum*SPLIT_UNIT - fileLength
 		}
 		for i := 0; i < int(chunkNum); i++ {
 			replicaLocationList := namenode.AllocateChunk()
@@ -43,30 +92,56 @@ func (namenode *NameNode) Run() {
 			file.Chunks[i].ReplicaLocationList = replicaLocationList
 		}
 
-		ns := namenode.NameSpace
+		//如果不存在，就新建
+		if !exist {
+			n.Files = append(n.Files, file)
+		} else if changed {
+			//存在但需要覆盖
+			TDFSLogger.Println("namenode: file exists and changed")
+			f = file
+		}
+		if !changed {
+			file = &File{}
+		}
 		//对应每一个文件，一个文件对应一个命名空间
-		ns[file.Name] = *file
-		namenode.NameSpace = ns
-
 		c.JSON(http.StatusOK, file)
 	})
-
+	//
 	router.GET("/getfile/:filename", func(c *gin.Context) {
 		filename := c.Param("filename")
 		fmt.Println("$ getfile ...", filename)
-		file := namenode.NameSpace[filename]
-
+		TDFSLogger.Println("filename")
+		node := namenode.NameSpace
+		file, err := node.GetFileNode(filename)
+		if err != nil {
+			TDFSLogger.Printf("get file=%v error=%v\n", filename, err.Error())
+			fmt.Printf("get file=%v error=%v\n", filename, err.Error())
+			c.JSON(http.StatusNotFound, err.Error())
+		}
 		c.JSON(http.StatusOK, file)
 	})
 
-	router.GET("/delfile/:filename", func(c *gin.Context) {
-		filename := c.Param("filename")
-		fmt.Println("$ delfile ...", filename)
-		file := namenode.NameSpace[filename]
-		for i := 0; i < len(file.Chunks); i++ {
-			namenode.DelChunk(file, i)
+	//
+	//router.GET("/delfile/:filename", func(c *gin.Context) {
+	//	filename := c.Param("filename")
+	//	fmt.Println("$ delfile ...", filename)
+	//	file := namenode.NameSpace[filename]
+	//	for i := 0; i < len(file.Chunks); i++ {
+	//		namenode.DelChunk(file, i)
+	//	}
+	//	c.JSON(http.StatusOK, file)
+	//})
+
+	router.GET("/getfolder/:foldername", func(c *gin.Context) {
+		foldername := c.Param("foldername")
+		fmt.Println("$ getfolder ...", foldername)
+		TDFSLogger.Fatal("$ getfolder ...", foldername)
+		files := namenode.NameSpace.GetFileList(foldername)
+		var filenames []string
+		for i := 0; i < len(files); i++ {
+			filenames = append(filenames, files[i].Name)
 		}
-		c.JSON(http.StatusOK, file)
+		c.JSON(http.StatusOK, filenames)
 	})
 
 	//创建文件目录
@@ -81,16 +156,6 @@ func (namenode *NameNode) Run() {
 		}
 		context.JSON(http.StatusOK, -1)
 	})
-
-	// router.DELETE GET
-	// router.GET("/delfile/:filename", func(c *gin.Context) {
-	// 	filename := c.Param("filename")
-	// 	TDFSLogger.Fatal(filename)
-	// 	file := namenode.NameSpace[filename]
-	// 	TDFSLogger.Fatal(file.Name)
-	// 	fmt.Println(file)
-	// 	c.JSON(http.StatusOK, file)
-	// })
 
 	router.Run(":" + strconv.Itoa(namenode.Port))
 }
@@ -136,23 +201,6 @@ func (namenode *NameNode) AllocateChunk() (rlList [REDUNDANCE]ReplicaLocation) {
 	return rlList
 }
 
-func (namenode *NameNode) Reset() {
-	// CleanFile("TinyDFS/DataNode1/chunk-"+strconv.Itoa(i))
-	fmt.Println("# Reset...")
-
-	err := os.RemoveAll(namenode.NAMENODE_DIR + "/")
-	if err != nil {
-		fmt.Println("XXX NameNode error at RemoveAll dir", err.Error())
-		TDFSLogger.Fatal("XXX NameNode error: ", err)
-	}
-
-	err = os.MkdirAll(namenode.NAMENODE_DIR, 0777)
-	if err != nil {
-		fmt.Println("XXX NameNode error at MkdirAll", err.Error())
-		TDFSLogger.Fatal("XXX NameNode error: ", err)
-	}
-}
-
 func (namenode *NameNode) SetConfig(location string, dnnumber int, redundance int, dnlocations []string) {
 	temp := strings.Split(location, ":")
 	res, err := strconv.Atoi(temp[2])
@@ -160,8 +208,11 @@ func (namenode *NameNode) SetConfig(location string, dnnumber int, redundance in
 		fmt.Println("XXX NameNode error at Atoi parse Port", err.Error())
 		TDFSLogger.Fatal("XXX NameNode error: ", err)
 	}
-	ns := NameSpaceStruct{}
-	namenode.NameSpace = ns
+	namenode.NameSpace = &Folder{
+		Name:   "root",
+		Folder: make([]*Folder, 0),
+		Files:  make([]*File, 0),
+	}
 	namenode.Port = res
 	namenode.Location = location
 	namenode.DNNumber = dnnumber

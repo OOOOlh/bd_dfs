@@ -1,6 +1,7 @@
 package hdfs
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -9,7 +10,8 @@ import (
 /** Configurations for ALL Mode **/
 const SPLIT_UNIT int = 1000
 const REDUNDANCE int = 2
-const CHUNKTOTAL int = 100
+
+// const CHUNKTOTAL int = 400
 
 // Chunk 一律表示逻辑概念，表示文件块
 // Replica 表示文件块副本，是实际存储的
@@ -22,25 +24,11 @@ type ChunkUnit []byte // SPLIT_UNIT
 // 	ChunkNum int
 // }
 
-////// File to Chunk
-
-type NameSpaceStruct map[string]File
-type File struct {
-	Info   string // file info
-	Name   string
-	Length int64
-	// DataNodes []FileToDataNode
-	Chunks []FileChunk
-	// Chunks [CHUNKTOTAL]FileChunk
-	// 记录文件的最后一个块的偏移量
-	Offset_LastChunk int
-}
-
 //type NameSpaceStruct FileFolderNode
 
 // 创建文件目录方法  input-> (文件当前目录， 新建文件夹名字)
 // 创建成功返回True  创建失败（当前目录不存在， 或者该文件夹已经存在）返回False
-func (Node *FileFolderNode) CreateFolder(curPath string, folderName string) bool {
+func (Node *Folder) CreateFolder(curPath string, folderName string) bool {
 	path := strings.Split(curPath, "/")[1:]
 	index := 0
 	for index < len(path) {
@@ -52,10 +40,10 @@ func (Node *FileFolderNode) CreateFolder(curPath string, folderName string) bool
 						return false
 					}
 				}
-				Node.Folder = append(Node.Folder, &FileFolderNode{
+				Node.Folder = append(Node.Folder, &Folder{
 					folderName,
-					[]*FileFolderNode{},
-					[]*FileNode{},
+					[]*Folder{},
+					[]*File{},
 				})
 				return true
 			}
@@ -69,10 +57,10 @@ func (Node *FileFolderNode) CreateFolder(curPath string, folderName string) bool
 								return false
 							}
 						}
-						Node.Folder = append(Node.Folder, &FileFolderNode{
+						Node.Folder = append(Node.Folder, &Folder{
 							folderName,
-							[]*FileFolderNode{},
-							[]*FileNode{},
+							[]*Folder{},
+							[]*File{},
 						})
 						return true
 					}
@@ -84,20 +72,27 @@ func (Node *FileFolderNode) CreateFolder(curPath string, folderName string) bool
 }
 
 // DataNode的TreeStruct
-type FileFolderNode struct {
-	Name   string
-	Folder []*FileFolderNode
-	Files  []*FileNode
+type Folder struct {
+	Name string
+	//子文件夹
+	Folder []*Folder
+	//子文件
+	Files []*File
 }
-type FileNode struct {
+
+type File struct {
 	Name            string
 	Length          int64
 	Chunks          []FileChunk
 	OffsetLastChunk int
+	Info            string // file info
+
+	RemotePath string
 }
 
+//  /root/hdfs/dn/nn/
 // 根据目录结构查找文件列表
-func (Node *FileFolderNode) GetFileList(filePath string) []*FileNode {
+func (Node *Folder) GetFileList(filePath string) []*File {
 	path := strings.Split(filePath, "/")[1:]
 	index := 0
 	for index < len(path) {
@@ -121,33 +116,30 @@ func (Node *FileFolderNode) GetFileList(filePath string) []*FileNode {
 }
 
 // 根据目录获取文件节点信息
-func (Node *FileFolderNode) GetFileNode(filePath string) *FileNode {
-	// /root/folder1/data.txt  -> [root, folder1, data.txt]
-	path := strings.Split(filePath, "/")[1:]
-	if path[0] != "root" {
-		return nil
+func (Node *Folder) GetFileNode(filePath string) (*File, error) {
+	// root/folder1/data.txt  -> [root, folder1, data.txt]
+	path := strings.Split(filePath, "/")
+	if path[0] != Node.Name {
+		return nil, fmt.Errorf("node name mismatch")
 	}
+	node := Node
 	for _, step := range path[1 : len(path)-1] {
-		flag := false
-		for _, folder := range Node.Folder {
+		for _, folder := range node.Folder {
 			if folder.Name == step {
-				Node = folder
-				flag = true
+				node = folder
 				break
 			}
 		}
 		// 没有该目录
-		if flag {
-			return nil
-		}
+		return nil, fmt.Errorf("folder not found")
 	}
 	for _, file := range Node.Files {
-		if file.Name == strings.Split(path[len(path)-1], ".")[0] {
-			return file
+		if file.Name == path[len(path)-1] {
+			return file, nil
 		}
 	}
 	//没有该文件
-	return nil
+	return nil, fmt.Errorf("file not found")
 }
 
 type FileToDataNode struct {
@@ -175,10 +167,16 @@ type Config struct {
 	NameNodeAddr string
 }
 
+//限制文件夹层数为3
+//最长比如是/root/bd_hdfs/auto.png
 type NameNode struct {
-	NameSpace NameSpaceStruct
-	Location  string
-	Port      int
+	// <<<<<<< HEAD
+	// 	FsImage Folder
+	// =======
+	NameSpace *Folder
+	// >>>>>>> 16b5f6a15561897c5099d22520d9386b4bfe1800
+	Location string
+	Port     int
 	//DataNode数量
 	DNNumber int
 	//DataNode位置

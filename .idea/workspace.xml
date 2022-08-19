@@ -23,8 +23,21 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="94c22a5c-56f4-4441-9567-9a32993edb25" name="Default Changelist" comment="Finish create Folder port">
+      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/TDFSLog.txt" beforeDir="false" afterPath="$PROJECT_DIR$/TDFSLog.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client_main/Client.go" beforeDir="false" afterPath="$PROJECT_DIR$/client_main/Client.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dn1/DN1.go" beforeDir="false" afterPath="$PROJECT_DIR$/dn1/DN1.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dn2/DN2.go" beforeDir="false" afterPath="$PROJECT_DIR$/dn2/DN2.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dn3/DN3.go" beforeDir="false" afterPath="$PROJECT_DIR$/dn3/DN3.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hdfs/TDFSLog.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/hdfs/TestConfig_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/TestConfig_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hdfs/client.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/client.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hdfs/config.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/config.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hdfs/datanode.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/datanode.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hdfs/namenode.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/namenode.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/nn/NN.go" beforeDir="false" afterPath="$PROJECT_DIR$/nn/NN.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -40,8 +53,9 @@
   </component>
   <component name="HighlightingSettingsPerFile">
     <setting file="file://$PROJECT_DIR$/client_main/Client.go" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/dn1/DN1.go" root0="SKIP_INSPECTION" />
+    <setting file="file://$PROJECT_DIR$/dn1/DN1.go" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/dn2/DN2.go" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/hdfs/TestConfig_test.go" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/hdfs/client.go" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/hdfs/config.go" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/hdfs/namenode.go" root0="FORCE_HIGHLIGHTING" />

@@ -14,7 +14,7 @@ import (
 	"strconv"
 )
 
-func (client *Client) PutFile(fPath string) {
+func (client *Client) PutFile(localPath string, remotePath string) {
 	//删除上次的临时文件
 	_, err := os.Stat(client.TempStoreLocation)
 	//如果存在，就移除
@@ -27,16 +27,25 @@ func (client *Client) PutFile(fPath string) {
 	}
 
 	fmt.Println("****************************************")
-	fmt.Printf("*** Putting %s to TDFS [NameNode: %s] )\n", fPath, client.NameNodeAddr)
+	// fmt.Printf("*** Putting %s to TDFS [NameNode: %s] )\n", fPath, client.NameNodeAddr)
 
 	//将文件的名字和大小发送给NN
-	of, err := os.Stat(fPath)
+	f, err := os.Stat(localPath)
 	if err != nil {
 		fmt.Println("file state error", err)
 	}
+	//生成文件hash码，用于校验文件是否改变
+	fileBytes := readFileByBytes(localPath)
+	hash := sha256.New()
+	hash.Write(fileBytes)
+	hashStr := hex.EncodeToString(hash.Sum(nil))
+
 	file := &File{
-		Name:   of.Name(),
-		Length: of.Size(),
+		Name:   f.Name(),
+		Length: f.Size(),
+
+		Info: hashStr,
+		RemotePath: remotePath,
 	}
 
 	// json字符串
@@ -50,6 +59,7 @@ func (client *Client) PutFile(fPath string) {
 	if err != nil {
 		fmt.Println("http post error", err)
 	}
+
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("ioutil.ReadAll", err)
@@ -59,6 +69,12 @@ func (client *Client) PutFile(fPath string) {
 		fmt.Println("byte[] to json error", err)
 	}
 
+	//如果发现存在一模一样的文件，就直接返回
+	// if len(file.Chunks) == 0{
+	// 	fmt.Println("发现相同文件，返回")
+	// 	return
+	// }
+
 	//创建目录
 	err = os.MkdirAll(client.TempStoreLocation+"/"+file.Name, 0777)
 	if err != nil {
@@ -67,12 +83,16 @@ func (client *Client) PutFile(fPath string) {
 	}
 
 	//开始向DN传数据
-	data := readFileByBytes(fPath)
+	data := readFileByBytes(localPath)
 	for i := 0; i < len(file.Chunks); i++ {
 		// 存储在缓冲区中
 		CreateFile(client.TempStoreLocation + "/" + file.Name + "/chunk-" + strconv.Itoa(i))
 		//先在客户端本地分割
-		FastWrite(client.TempStoreLocation+"/"+file.Name+"/chunk-"+strconv.Itoa(i), data[i*SPLIT_UNIT:(i+1)*SPLIT_UNIT])
+		if len(data) < SPLIT_UNIT {
+			FastWrite(client.TempStoreLocation+"/"+file.Name+"/chunk-"+strconv.Itoa(i), data[i*SPLIT_UNIT:])
+		} else {
+			FastWrite(client.TempStoreLocation+"/"+file.Name+"/chunk-"+strconv.Itoa(i), data[i*SPLIT_UNIT:(i+1)*SPLIT_UNIT])
+		}
 		// 发送到datanode进行存储
 		PutChunk(client.TempStoreLocation+"/"+file.Name+"/chunk-"+strconv.Itoa(i), file.Chunks[i].ReplicaLocationList)
 	}
@@ -102,6 +122,11 @@ func (client *Client) GetFile(fName string) { //, fName string
 	if err != nil {
 		fmt.Println("XXX Client error at Get file", err.Error())
 		TDFSLogger.Fatal("XXX Client error at Get file", err)
+	}
+	if response.StatusCode == http.StatusNotFound {
+		fmt.Printf("Client file=%v not found\n", fName)
+		TDFSLogger.Printf("Client file=%v not found", fName)
+		return
 	}
 	defer response.Body.Close()
 
@@ -156,6 +181,34 @@ func (client *Client) Mkdir(curPath string, folderName string) bool {
 
 	fmt.Println(body)
 	return true
+}
+
+//new added
+func (client *Client) GetFolder(fName string) { //fName string
+
+	fmt.Println("****************************************")
+	fmt.Printf("*** Getting from TDFS [NameNode: %s] to ${GOPATH}/%s )\n", client.NameNodeAddr, fName) //  as %s , fName
+
+	response, err := http.Get(client.NameNodeAddr + "/getfolder/" + fName)
+	if err != nil {
+		fmt.Println("Client error at Get folder", err.Error())
+		TDFSLogger.Fatal("Client error at Get folder", err)
+	}
+	defer response.Body.Close()
+
+	bytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		fmt.Println("Client error at read response data", err.Error())
+		TDFSLogger.Fatal("Client error at read response data", err)
+	}
+
+	var folder []string
+	if err = json.Unmarshal(bytes, &folder); err != nil {
+		fmt.Println("byte[] to json error", err)
+	}
+
+	fmt.Println("success get the filename list in this folder:", folder)
+
 }
 
 func (client *Client) DelFile(fName string) {
@@ -437,8 +490,8 @@ func (client *Client) SetConfig(nnaddr string) {
 func RequestInfo(fileName string, fileBytes int) []ReplicaLocation {
 	/* POST and Wait */
 	replicaLocationList := []ReplicaLocation{
-		ReplicaLocation{"http://localhost:11091", 3},
-		ReplicaLocation{"http://localhost:11092", 5},
+		{"http://localhost:11091", 3},
+		{"http://localhost:11092", 5},
 	}
 	return replicaLocationList
 }

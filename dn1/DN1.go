@@ -8,9 +8,9 @@ import "hdfs/hdfs"
 // "tdfs"
 // "runtime"
 // "sync"
-const DN1_DIR string = "./datanode"
+const DN1_DIR string = "./dn1/datanode"
 const DN1_LOCATION string = "http://localhost:11091"
-const DN1_CAPACITY int = 100
+const DN1_CAPACITY int = 400
 
 func main() {
 	var dn1 hdfs.DataNode
