@@ -36,7 +36,7 @@ func main() {
 	client.StoreLocation = "./dfs"
 	client.TempStoreLocation = "./dfs/temp"
 
-	filenameOfGet := flag.String("getfile", "unknow", "the filename of the file you want to get") // SmallFile
+	// filenameOfGet := flag.String("getfile", "unknow", "the filename of the file you want to get") // SmallFile
 	localFilePath := flag.String("local", "unknow", "local_file_path")
 	remoteFilePath := flag.String("remote", "unknow", "remote_file_path")
 	// filenameOfPut := flag.String("putfile", "unknow", "the filename of the file you want to put") // SmallFile.txt
@@ -48,15 +48,17 @@ func main() {
 	// 	client.PutFile(*filenameOfPut)
 	// 	fmt.Println(" -PutFile for ", *filenameOfPut)
 	// }
+	
+	//Put
 	if *localFilePath != "unknow" && *remoteFilePath != "unknow"{
 		client.PutFile(*localFilePath, *remoteFilePath)
 		fmt.Printf(" PutFile %s to %s ", *localFilePath, *remoteFilePath)
 	}
 
-	if *filenameOfGet != "unknow" {
-		client.GetFile(*filenameOfGet)
-		fmt.Println(" -Getfile for ", *filenameOfGet)
-	}
+	// if *filenameOfGet != "unknow" {
+	// 	client.GetFile(*filenameOfGet)
+	// 	fmt.Println(" -Getfile for ", *filenameOfGet)
+	// }
 
 	if *filenameOfDel != "unknow" {
 		client.DelFile(*filenameOfDel)

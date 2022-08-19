@@ -133,16 +133,17 @@ func (namenode *NameNode) Run() {
 	//	c.JSON(http.StatusOK, file)
 	//})
 
-	// router.GET("/getfolder/:foldername", func(c *gin.Context) {
-	// 	foldername := c.Param("foldername")
-	// 	fmt.Println("$ getfolder ...", foldername)
-	// 	files := namenode.NameSpace.GetFileList(foldername)
-	// 	var filenames []string
-	// 	for i := 0; i < len(files); i++ {
-	// 		filenames = append(filenames, files[i].Name)
-	// 	}
-	// 	c.JSON(http.StatusOK, filenames)
-	// })
+	router.GET("/getfolder/:foldername", func(c *gin.Context) {
+		foldername := c.Param("foldername")
+		fmt.Println("$ getfolder ...", foldername)
+		TDFSLogger.Fatal("$ getfolder ...", foldername)
+		files := namenode.NameSpace.GetFileList(foldername)
+		var filenames []string
+		for i := 0; i < len(files); i++ {
+			filenames = append(filenames, files[i].Name)
+		}
+		c.JSON(http.StatusOK, filenames)
+	})
 
 	router.Run(":" + strconv.Itoa(namenode.Port))
 }

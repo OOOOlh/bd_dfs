@@ -43,11 +43,8 @@ type File struct {
 	RemotePath string
 }
 
-func (Node *Folder) PutFile(filepath string){
 
-}
-
-
+//  /root/hdfs/dn/nn/
 // 根据目录结构查找文件列表
 func (Node *Folder) GetFileList(filePath string) []*File {
 	path := strings.Split(filePath, "/")[1:]
