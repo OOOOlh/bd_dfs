@@ -39,6 +39,7 @@ func main() {
 	filenameOfGet := flag.String("getfile", "unknow", "the filename of the file you want to get") // SmallFile
 	filenameOfPut := flag.String("putfile", "unknow", "the filename of the file you want to put") // SmallFile.txt
 	filenameOfDel := flag.String("delfile", "unknow", "the filename of the file you want to del")
+	folderNameOfGet := flag.String("getfolder", "unknow", "the name of folder you want to check")
 	flag.Parse()
 
 	if *filenameOfPut != "unknow" {
@@ -56,7 +57,8 @@ func main() {
 		fmt.Println(" -Delfile for ", *filenameOfDel)
 	}
 
-	// fmt.Println(flag.Args())
-	//, "smallfile.txt" /Users/treasersmac/Programming/MilkPrairie/Gou/TinyDFS/
-	// client.Test()
+	if *folderNameOfGet != "unknow" {
+		client.GetFolder(*folderNameOfGet)
+		fmt.Println(" -Getfolder for ", *folderNameOfGet)
+	}
 }
