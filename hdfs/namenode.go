@@ -16,7 +16,6 @@ import (
 */
 func (namenode *NameNode) Run() {
 	router := gin.Default()
-
 	router.POST("/put", func(c *gin.Context) {
 		b, _ := c.GetRawData() // 从c.Request.Body读取请求数据
 		file := &File{}
@@ -68,6 +67,19 @@ func (namenode *NameNode) Run() {
 			namenode.DelChunk(file, i)
 		}
 		c.JSON(http.StatusOK, file)
+	})
+
+	//创建文件目录
+	router.POST("/mkdir", func(context *gin.Context) {
+		b, _ := context.GetRawData() // 从c.Request.Body读取请求数据
+		var dataMap map[string]string
+		if err := json.Unmarshal(b, &dataMap); err != nil {
+			fmt.Println("namenode put json to byte error", err)
+		}
+		if namenode.NameSpace.CreateFolder(dataMap["curPath"], dataMap["folderName"]) {
+			context.JSON(http.StatusOK, 1)
+		}
+		context.JSON(http.StatusOK, -1)
 	})
 
 	// router.DELETE GET

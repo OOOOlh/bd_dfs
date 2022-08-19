@@ -135,6 +135,28 @@ func (client *Client) GetFile(fName string) { //, fName string
 	/* 将文件夹下的块数据整合成一个文件 */
 	client.AssembleFile(*file)
 }
+func (client *Client) Mkdir(curPath string, folderName string) bool {
+	dataMap := map[string]string{}
+	dataMap["curPath"] = curPath
+	dataMap["folderName"] = folderName
+	d, err := json.Marshal(dataMap)
+	if err != nil {
+		fmt.Println("json to byte[] error", err)
+	}
+	// 序列化
+	reader := bytes.NewReader(d)
+	resp, err := http.Post(client.NameNodeAddr+"/mkdir", "application/json", reader)
+	if err != nil {
+		fmt.Println("http post error", err)
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("ioutil.ReadAll", err)
+	}
+
+	fmt.Println(body)
+	return true
+}
 
 func (client *Client) DelFile(fName string) {
 	//删除上次的临时文件

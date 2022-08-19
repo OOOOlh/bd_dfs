@@ -23,6 +23,7 @@ type ChunkUnit []byte // SPLIT_UNIT
 // }
 
 ////// File to Chunk
+
 type NameSpaceStruct map[string]File
 type File struct {
 	Info   string // file info
@@ -33,6 +34,53 @@ type File struct {
 	// Chunks [CHUNKTOTAL]FileChunk
 	// 记录文件的最后一个块的偏移量
 	Offset_LastChunk int
+}
+
+//type NameSpaceStruct FileFolderNode
+
+// 创建文件目录方法  input-> (文件当前目录， 新建文件夹名字)
+// 创建成功返回True  创建失败（当前目录不存在， 或者该文件夹已经存在）返回False
+func (Node *FileFolderNode) CreateFolder(curPath string, folderName string) bool {
+	path := strings.Split(curPath, "/")[1:]
+	index := 0
+	for index < len(path) {
+		if Node.Name == path[index] {
+			index++
+			if index >= len(path) {
+				for _, f := range Node.Folder {
+					if f.Name == folderName {
+						return false
+					}
+				}
+				Node.Folder = append(Node.Folder, &FileFolderNode{
+					folderName,
+					[]*FileFolderNode{},
+					[]*FileNode{},
+				})
+				return true
+			}
+			for _, node := range Node.Folder {
+				if node.Name == path[index] {
+					Node = node
+					index++
+					if index >= len(path) {
+						for _, f := range Node.Folder {
+							if f.Name == folderName {
+								return false
+							}
+						}
+						Node.Folder = append(Node.Folder, &FileFolderNode{
+							folderName,
+							[]*FileFolderNode{},
+							[]*FileNode{},
+						})
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
 }
 
 // DataNode的TreeStruct
@@ -110,6 +158,7 @@ type FileChunk struct {
 	Info                string // checksum
 	ReplicaLocationList [REDUNDANCE]ReplicaLocation
 }
+
 type ReplicaLocation struct {
 	//冗余块的位置
 	ServerLocation string
@@ -122,7 +171,6 @@ type Client struct {
 	NameNodeAddr      string
 	Mode              int
 }
-
 type Config struct {
 	NameNodeAddr string
 }
