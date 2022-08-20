@@ -239,6 +239,11 @@ func (client *Client) DelFile(fName string) {
 		fmt.Println("XXX Client error at Get file", err.Error())
 		TDFSLogger.Fatal("XXX Client error at Get file", err)
 	}
+	if response.StatusCode == http.StatusNotFound {
+		fmt.Printf("Client file=%v not found\n", fName)
+		TDFSLogger.Printf("Client file=%v not found", fName)
+		return
+	}
 	defer response.Body.Close()
 
 	// Read Response Body
@@ -248,13 +253,23 @@ func (client *Client) DelFile(fName string) {
 		TDFSLogger.Fatal("XXX Client error at read response data", err)
 	}
 
-	file := &File{}
-	if err = json.Unmarshal(bytes, file); err != nil {
+	folder := &Folder{}
+	if err = json.Unmarshal(bytes, folder); err != nil {
 		fmt.Println("byte[] to json error", err)
 	}
-
-	for i := 0; i < len(file.Chunks); i++ {
-		client.delChunk(file, i)
+	files := folder.Files
+	flag := false
+	for i := 0; i < len(files); i++ {
+		if files[i].Name == fName {
+			flag = true
+			targetFile := files[i]
+			for j := 0; j < len(targetFile.Chunks); j++ {
+				client.delChunk(targetFile, j)
+			}
+		}
+	}
+	if !flag {
+		fmt.Println("*** not found file ")
 	}
 	fmt.Println("*** delete finish ")
 	fmt.Println("****************************************")
