@@ -10,6 +10,7 @@ import (
 /** Configurations for ALL Mode **/
 const SPLIT_UNIT int = 1000
 const REDUNDANCE int = 2
+
 // const CHUNKTOTAL int = 400
 
 // Chunk 一律表示逻辑概念，表示文件块
@@ -23,14 +24,60 @@ type ChunkUnit []byte // SPLIT_UNIT
 // 	ChunkNum int
 // }
 
-//父文件夹
+//type NameSpaceStruct FileFolderNode
+
+// 创建文件目录方法  input-> (文件当前目录， 新建文件夹名字)
+// 创建成功返回True  创建失败（当前目录不存在， 或者该文件夹已经存在）返回False
+func (Node *Folder) CreateFolder(curPath string, folderName string) bool {
+	path := strings.Split(curPath, "/")[1:]
+	index := 0
+	for index < len(path) {
+		if Node.Name == path[index] {
+			index++
+			if index >= len(path) {
+				for _, f := range Node.Folder {
+					if f.Name == folderName {
+						return false
+					}
+				}
+				Node.Folder = append(Node.Folder, &Folder{
+					folderName,
+					[]*Folder{},
+					[]*File{},
+				})
+				return true
+			}
+			for _, node := range Node.Folder {
+				if node.Name == path[index] {
+					Node = node
+					index++
+					if index >= len(path) {
+						for _, f := range Node.Folder {
+							if f.Name == folderName {
+								return false
+							}
+						}
+						Node.Folder = append(Node.Folder, &Folder{
+							folderName,
+							[]*Folder{},
+							[]*File{},
+						})
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
 // DataNode的TreeStruct
 type Folder struct {
-	Name   string
+	Name string
 	//子文件夹
 	Folder []*Folder
 	//子文件
-	Files  []*File
+	Files []*File
 }
 
 type File struct {
@@ -43,30 +90,29 @@ type File struct {
 	RemotePath string
 }
 
-
 //  /root/hdfs/dn/nn/
 // 根据目录结构查找文件列表
-func (Node *Folder) GetFileList(filePath string) []*File {
+func (Node *Folder) GetFileList(filePath string) ([]*File, []*Folder) {
 	path := strings.Split(filePath, "/")[1:]
 	index := 0
 	for index < len(path) {
 		if Node.Name == path[index] {
 			index++
 			if index >= len(path) {
-				return Node.Files
+				return Node.Files, Node.Folder
 			}
 			for _, node := range Node.Folder {
 				if node.Name == path[index] {
 					Node = node
 					index++
 					if index >= len(path) {
-						return Node.Files
+						return Node.Files, Node.Folder
 					}
 				}
 			}
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 // 根据目录获取文件节点信息
@@ -104,6 +150,7 @@ type FileChunk struct {
 	Info                string // checksum
 	ReplicaLocationList [REDUNDANCE]ReplicaLocation
 }
+
 type ReplicaLocation struct {
 	//冗余块的位置
 	ServerLocation string
@@ -116,7 +163,6 @@ type Client struct {
 	NameNodeAddr      string
 	Mode              int
 }
-
 type Config struct {
 	NameNodeAddr string
 }
@@ -124,13 +170,9 @@ type Config struct {
 //限制文件夹层数为3
 //最长比如是/root/bd_hdfs/auto.png
 type NameNode struct {
-// <<<<<<< HEAD
-// 	FsImage Folder
-// =======
 	NameSpace *Folder
-// >>>>>>> 16b5f6a15561897c5099d22520d9386b4bfe1800
-	Location  string
-	Port      int
+	Location string
+	Port     int
 	//DataNode数量
 	DNNumber int
 	//DataNode位置

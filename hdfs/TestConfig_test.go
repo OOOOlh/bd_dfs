@@ -1,6 +1,7 @@
 package hdfs
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -19,14 +20,20 @@ func getNodes() *Folder {
 	}
 }
 
-func TestGetFileList(t *testing.T) {
+func TestMkdir(t *testing.T) {
 	Nodes := getNodes()
-	FileList := Nodes.GetFileList("/root")
-	t.Log(FileList)
-	if FileList != nil {
-		t.Log(len(FileList))
-	}
+	fmt.Println(Nodes.CreateFolder("/root", "data"))
+	fmt.Println(Nodes.Folder[0].Name)
 }
+
+// func TestGetFileList(t *testing.T) {
+// 	Nodes := getNodes()
+// 	FileList := Nodes.GetFileList("/root")
+// 	t.Log(FileList)
+// 	if FileList != nil {
+// 		t.Log(len(FileList))
+// 	}
+// }
 
 func TestGetFileNode(t *testing.T) {
 	Nodes := getNodes()
