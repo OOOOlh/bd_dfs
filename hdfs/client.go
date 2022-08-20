@@ -118,7 +118,7 @@ func (client *Client) GetFile(fName string) { //, fName string
 	fmt.Println("****************************************")
 	fmt.Printf("*** Getting from TDFS [NameNode: %s] to ${GOPATH}/%s )\n", client.NameNodeAddr, fName) //  as %s , fName
 
-	response, err := http.Get(client.NameNodeAddr + "/getfile/" + fName)
+	response, err := http.Get(client.NameNodeAddr + "/getfile?filename=" + fName)
 	if err != nil {
 		fmt.Println("XXX Client error at Get file", err.Error())
 		TDFSLogger.Fatal("XXX Client error at Get file", err)

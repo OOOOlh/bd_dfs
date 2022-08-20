@@ -27,7 +27,8 @@ func (namenode *NameNode) Run() {
 			fmt.Println("namenode put json to byte error", err)
 		}
 
-		path := strings.Split(file.RemotePath, "/")
+		// 去除最开始的斜杠
+		path := strings.Split(file.RemotePath, "/")[1:]
 
 		var n *Folder
 		ff := namenode.NameSpace
@@ -35,7 +36,7 @@ func (namenode *NameNode) Run() {
 		//遍历所有文件夹，/root/下的所有文件夹
 		folder := &ff.Folder
 		// folder := &namenode.NameSpace.Folder
-		for _, p := range path[1:] {
+		for _, p := range path[1:len(path)-1] {
 			if p == ""{
 				continue
 			}
@@ -109,8 +110,8 @@ func (namenode *NameNode) Run() {
 		c.JSON(http.StatusOK, file)
 	})
 	//
-	router.GET("/getfile/:filename", func(c *gin.Context) {
-		filename := c.Param("filename")
+	router.GET("/getfile", func(c *gin.Context) {
+		filename := c.Query("filename")
 		fmt.Println("$ getfile ...", filename)
 		TDFSLogger.Println("filename")
 		node := namenode.NameSpace
@@ -119,6 +120,7 @@ func (namenode *NameNode) Run() {
 			TDFSLogger.Printf("get file=%v error=%v\n", filename, err.Error())
 			fmt.Printf("get file=%v error=%v\n", filename, err.Error())
 			c.JSON(http.StatusNotFound, err.Error())
+			return
 		}
 		c.JSON(http.StatusOK, file)
 	})
