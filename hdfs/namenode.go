@@ -125,16 +125,22 @@ func (namenode *NameNode) Run() {
 		c.JSON(http.StatusOK, file)
 	})
 
-	//
-	//router.GET("/delfile/:filename", func(c *gin.Context) {
-	//	filename := c.Param("filename")
-	//	fmt.Println("$ delfile ...", filename)
-	//	file := namenode.NameSpace[filename]
-	//	for i := 0; i < len(file.Chunks); i++ {
-	//		namenode.DelChunk(file, i)
-	//	}
-	//	c.JSON(http.StatusOK, file)
-	//})
+	router.GET("/delfile/:filename", func(c *gin.Context) {
+		filename := c.Param("filename")
+		fmt.Println("$ delfile ...", filename)
+		var targetFile *File = nil
+		files := namenode.NameSpace.Files
+		for i := 0; i < len(files); i++ {
+			if files[i].Name == filename {
+				targetFile = files[i]
+				for j := 0; j < len(targetFile.Chunks); j++ {
+					namenode.DelChunk(*targetFile, j)
+				}
+			}
+		}
+
+		c.JSON(http.StatusOK, targetFile)
+	})
 
 	router.POST("/getfolder", func(context *gin.Context) {
 		b, _ := context.GetRawData() // 从c.Request.Body读取请求数据
