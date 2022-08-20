@@ -26,14 +26,14 @@ func TestMkdir(t *testing.T) {
 	fmt.Println(Nodes.Folder[0].Name)
 }
 
-func TestGetFileList(t *testing.T) {
-	Nodes := getNodes()
-	FileList := Nodes.GetFileList("/root")
-	t.Log(FileList)
-	if FileList != nil {
-		t.Log(len(FileList))
-	}
-}
+// func TestGetFileList(t *testing.T) {
+// 	Nodes := getNodes()
+// 	FileList := Nodes.GetFileList("/root")
+// 	t.Log(FileList)
+// 	if FileList != nil {
+// 		t.Log(len(FileList))
+// 	}
+// }
 
 func TestGetFileNode(t *testing.T) {
 	Nodes := getNodes()

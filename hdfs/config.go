@@ -170,11 +170,7 @@ type Config struct {
 //限制文件夹层数为3
 //最长比如是/root/bd_hdfs/auto.png
 type NameNode struct {
-	// <<<<<<< HEAD
-	// 	FsImage Folder
-	// =======
 	NameSpace *Folder
-	// >>>>>>> 16b5f6a15561897c5099d22520d9386b4bfe1800
 	Location string
 	Port     int
 	//DataNode数量

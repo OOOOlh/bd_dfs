@@ -30,10 +30,15 @@ func (namenode *NameNode) Run() {
 		path := strings.Split(file.RemotePath, "/")
 
 		var n *Folder
-		//例如：path = /root/temp/dd/1.png
+		ff := namenode.NameSpace
+		//例如：path = /root/temp/dd/
 		//遍历所有文件夹，/root/下的所有文件夹
-		folder := &namenode.NameSpace.Folder
-		for _, p := range path[2 : len(path)-1] {
+		folder := &ff.Folder
+		// folder := &namenode.NameSpace.Folder
+		for _, p := range path[1:] {
+			if p == ""{
+				continue
+			}
 			//fmt.Println(p)
 			exist := false
 			for _, n = range *folder {
@@ -57,6 +62,7 @@ func (namenode *NameNode) Run() {
 
 		}
 
+		//直接把文件写在当前文件夹下
 		var exist bool
 		var changed bool = true
 		var f *File
@@ -77,7 +83,6 @@ func (namenode *NameNode) Run() {
 
 		var chunkNum int
 		var fileLength = int(file.Length)
-		// chunkNum = file.Length/
 		if file.Length%int64(SPLIT_UNIT) == 0 {
 			chunkNum = fileLength / SPLIT_UNIT
 			file.OffsetLastChunk = 0
@@ -92,18 +97,15 @@ func (namenode *NameNode) Run() {
 			file.Chunks[i].ReplicaLocationList = replicaLocationList
 		}
 
-		//如果不存在，就新建
 		if !exist {
 			n.Files = append(n.Files, file)
 		} else if changed {
-			//存在但需要覆盖
 			TDFSLogger.Println("namenode: file exists and changed")
 			f = file
 		}
 		if !changed {
 			file = &File{}
 		}
-		//对应每一个文件，一个文件对应一个命名空间
 		c.JSON(http.StatusOK, file)
 	})
 	//
