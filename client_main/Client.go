@@ -13,15 +13,15 @@ func main() {
 
 	/*添加文件*/
 	// cd client_main
-	// go run Client.go -putfile "绝对路径"或"./(相对路径，与Client.go同路径)"
+	// go run Client.go -local "绝对路径"或"./(相对路径，与Client.go同路径)" -remote "namenode文件路径"
 	//例如
-	// go run Client.go -putfile "D:/go/workspace/src/auto.jpg"
+	// go run Client.go -local "./auto.jpg" -remote "/root/data/auto.jpg"
 
 	/*下载文件*/
 	// cd client_main
-	// go run Client.go -getfile "文件名"
+	// go run Client.go -getfile "namenode文件路径"
 	//例如
-	// go run Client.go -getfile "auto.jpg"
+	// go run Client.go -getfile "/root/data/auto.jpg"
 
 	/*删除文件*/
 	// cd client_main
@@ -37,7 +37,6 @@ func main() {
 	filenameOfGet := flag.String("getfile", "unknow", "the filename of the file you want to get") // SmallFile
 	localFilePath := flag.String("local", "unknow", "local_file_path")
 	remoteFilePath := flag.String("remote", "unknow", "remote_file_path")
-	//filenameOfPut := flag.String("putfile", "unknow", "the filename of the file you want to put") // SmallFile.txt
 	filenameOfDel := flag.String("delfile", "unknow", "the filename of the file you want to del")
 
 	folderNameOfGet := flag.String("getfolder", "unknow", "the name of folder you want to check")
@@ -47,10 +46,10 @@ func main() {
 
 	flag.Parse()
 	// 上传
-	//if *filenameOfPut != "unknow" {
-	//	client.PutFile(*filenameOfPut)
-	//	fmt.Println(" -PutFile for ", *filenameOfPut)
-	//}
+	if *localFilePath != "unknow" && *remoteFilePath != "unknow" {
+		client.PutFile(*localFilePath, *remoteFilePath)
+		fmt.Println(" -Put local file=%v at remote file=%v ", *localFilePath, *remoteFilePath)
+	}
 	// 读取
 	if *filenameOfGet != "unknow" {
 		client.GetFile(*filenameOfGet)

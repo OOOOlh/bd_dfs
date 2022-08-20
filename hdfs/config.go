@@ -117,29 +117,33 @@ func (Node *Folder) GetFileList(filePath string) ([]*File, []*Folder) {
 
 // 根据目录获取文件节点信息
 func (Node *Folder) GetFileNode(filePath string) (*File, error) {
-	// root/folder1/data.txt  -> [root, folder1, data.txt]
-	path := strings.Split(filePath, "/")
+	// /root/folder1/data.txt  -> [root, folder1, data.txt]
+	path := strings.Split(filePath, "/")[1:]
 	if path[0] != Node.Name {
 		return nil, fmt.Errorf("node name mismatch")
 	}
 	node := Node
 	for _, step := range path[1 : len(path)-1] {
+		validFolder := false
 		for _, folder := range node.Folder {
 			if folder.Name == step {
 				node = folder
+				validFolder = true
 				break
 			}
 		}
 		// 没有该目录
-		return nil, fmt.Errorf("folder not found")
+		if !validFolder {
+			return nil, fmt.Errorf("folder=%v not found", step)
+		}
 	}
-	for _, file := range Node.Files {
+	for _, file := range node.Files {
 		if file.Name == path[len(path)-1] {
 			return file, nil
 		}
 	}
 	//没有该文件
-	return nil, fmt.Errorf("file not found")
+	return nil, fmt.Errorf("file=%v not found", path[len(path)-1])
 }
 
 type FileToDataNode struct {
@@ -171,8 +175,8 @@ type Config struct {
 //最长比如是/root/bd_hdfs/auto.png
 type NameNode struct {
 	NameSpace *Folder
-	Location string
-	Port     int
+	Location  string
+	Port      int
 	//DataNode数量
 	DNNumber int
 	//DataNode位置
