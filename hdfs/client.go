@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"sync"
 )
 
 func (client *Client) PutFile(localPath string, remotePath string) {
@@ -36,6 +37,7 @@ func (client *Client) PutFile(localPath string, remotePath string) {
 	}
 	//生成文件hash码，用于校验文件是否改变
 	fileBytes := readFileByBytes(localPath)
+	//	crc32 := crc32.ChecksumIEEE(fileBytes)
 	hash := sha256.New()
 	hash.Write(fileBytes)
 	hashStr := hex.EncodeToString(hash.Sum(nil))
@@ -420,38 +422,44 @@ func (client *Client) AssembleFile(file File) {
 	FastWrite(client.StoreLocation+"/"+file.Name+"/"+file.Name, fdata)
 }
 
+//client要求NameNode的两个DataNode删除chunk
 func (client *Client) delChunk(file *File, num int) {
 	fmt.Println("** deleting chunk-", num, "of file:", file.Name)
-
+	var wg sync.WaitGroup
+	wg.Add(REDUNDANCE)
 	for i := 0; i < REDUNDANCE; i++ {
-		chunklocation := file.Chunks[num].ReplicaLocationList[i].ServerLocation
-		chunknum := file.Chunks[num].ReplicaLocationList[i].ReplicaNum
-		url := chunklocation + "/delchunk/" + strconv.Itoa(chunknum)
+		go func(i int) {
+			chunklocation := file.Chunks[num].ReplicaLocationList[i].ServerLocation
+			chunknum := file.Chunks[num].ReplicaLocationList[i].ReplicaNum
+			url := chunklocation + "/delchunk/" + strconv.Itoa(chunknum)
 
-		// response, err := http.Get(url)
-		c := &http.Client{}
-		req, err := http.NewRequest("DELETE", url, nil)
-		if err != nil {
-			fmt.Println("XXX NameNode error at Del chunk of ", file.Info, ": ", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error: ", err)
-		}
+			// response, err := http.Get(url)
+			c := &http.Client{}
+			req, err := http.NewRequest("DELETE", url, nil)
+			if err != nil {
+				fmt.Println("XXX NameNode error at Del chunk of ", file.Info, ": ", err.Error())
+				TDFSLogger.Fatal("XXX NameNode error: ", err)
+			}
 
-		response, err := c.Do(req)
-		if err != nil {
-			fmt.Println("XXX NameNode error at Del chunk(Do):", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error at Del chunk(Do):", err)
-		}
-		defer response.Body.Close()
+			response, err := c.Do(req)
+			if err != nil {
+				fmt.Println("XXX NameNode error at Del chunk(Do):", err.Error())
+				TDFSLogger.Fatal("XXX NameNode error at Del chunk(Do):", err)
+			}
+			defer response.Body.Close()
 
-		/** Read response **/
-		delRes, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			fmt.Println("XXX NameNode error at Read response", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error: ", err)
-		}
-		fmt.Println("*** DataNode Response of Delete chunk-", num, "replica-", i, ": ", string(delRes))
-		// return chunkbytes
+			/** Read response **/
+			delRes, err := ioutil.ReadAll(response.Body)
+			if err != nil {
+				fmt.Println("XXX NameNode error at Read response", err.Error())
+				TDFSLogger.Fatal("XXX NameNode error: ", err)
+			}
+			fmt.Println("*** DataNode Response of Delete chunk-", num, "replica-", i, ": ", string(delRes))
+			// return chunkbytes
+			wg.Done()
+		}(i)
 	}
+	wg.Wait()
 }
 
 func (client *Client) Test() {
