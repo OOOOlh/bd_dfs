@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"io"
 	"net/http"
 	"os"
@@ -15,6 +16,10 @@ import (
 
 func (datanode *DataNode) Run() {
 	router := gin.Default()
+	router.Use(MwPrometheusHttp)
+	// register the `/metrics` route.
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+
 	router.POST("/putchunk", func(c *gin.Context) {
 		// c.Request.ParseMultipartForm(32 << 20) //上传最大文件限制32M
 		// chunkNum := c.Request.Form.Get("chunkNum") //通过这种方式在gin中也可以读取到POST的参数，ginb

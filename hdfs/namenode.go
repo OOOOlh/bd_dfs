@@ -3,6 +3,7 @@ package hdfs
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
 	"strconv"
 	"strings"
@@ -16,6 +17,10 @@ import (
 */
 func (namenode *NameNode) Run() {
 	router := gin.Default()
+	router.Use(MwPrometheusHttp)
+	// register the `/metrics` route.
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+
 	router.POST("/put", func(c *gin.Context) {
 		b, _ := c.GetRawData() // 从c.Request.Body读取请求数据
 		file := &File{}
