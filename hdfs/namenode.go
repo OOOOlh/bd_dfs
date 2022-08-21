@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 )
@@ -189,40 +190,50 @@ func (namenode *NameNode) DelChunk(file File, num int) {
 	//预删除文件的块信息
 	//修改namenode.DataNodes[].ChunkAvail
 	//和namenode.DataNodes[].StorageAvail
+	var wg sync.WaitGroup
+	wg.Add(REDUNDANCE)
 	for i := 0; i < REDUNDANCE; i++ {
-		chunklocation := file.Chunks[num].ReplicaLocationList[i].ServerLocation
-		chunknum := file.Chunks[num].ReplicaLocationList[i].ReplicaNum
-
-		index := namenode.Map[chunklocation]
-		namenode.DataNodes[index].ChunkAvail = append(namenode.DataNodes[index].ChunkAvail, chunknum)
-		namenode.DataNodes[index].StorageAvail++
+		go func(i int) {
+			chunklocation := file.Chunks[num].ReplicaLocationList[i].ServerLocation
+			chunknum := file.Chunks[num].ReplicaLocationList[i].ReplicaNum
+			index := namenode.Map[chunklocation]
+			namenode.DataNodes[index].ChunkAvail = append(namenode.DataNodes[index].ChunkAvail, chunknum)
+			namenode.DataNodes[index].StorageAvail++
+			wg.Done()
+		}(i)
 	}
+	wg.Wait()
 }
 
 func (namenode *NameNode) AllocateChunk() (rlList [REDUNDANCE]ReplicaLocation) {
 	redundance := namenode.REDUNDANCE
 	var max [REDUNDANCE]int
+	var wg sync.WaitGroup
+	wg.Add(REDUNDANCE)
 	for i := 0; i < redundance; i++ {
-		max[i] = 0
-		//找到目前空闲块最多的NA
-		for j := 0; j < namenode.DNNumber; j++ {
-			//遍历每一个DN，找到空闲块最多的前redundance个DN
-			if namenode.DataNodes[j].StorageAvail > namenode.DataNodes[max[i]].StorageAvail {
-				max[i] = j
+		go func(i int) {
+			max[i] = 0
+			//找到目前空闲块最多的NA
+			for j := 0; j < namenode.DNNumber; j++ {
+				//遍历每一个DN，找到空闲块最多的前redundance个DN
+				if namenode.DataNodes[j].StorageAvail > namenode.DataNodes[max[i]].StorageAvail {
+					max[i] = j
+				}
 			}
-		}
 
-		//ServerLocation是DN地址
-		rlList[i].ServerLocation = namenode.DataNodes[max[i]].Location
-		//ReplicaNum是DN已用的块
-		rlList[i].ReplicaNum = namenode.DataNodes[max[i]].ChunkAvail[0]
-		n := namenode.DataNodes[max[i]].StorageAvail
+			//ServerLocation是DN地址
+			rlList[i].ServerLocation = namenode.DataNodes[max[i]].Location
+			//ReplicaNum是DN已用的块
+			rlList[i].ReplicaNum = namenode.DataNodes[max[i]].ChunkAvail[0]
+			n := namenode.DataNodes[max[i]].StorageAvail
 
-		namenode.DataNodes[max[i]].ChunkAvail[0] = namenode.DataNodes[max[i]].ChunkAvail[n-1]
-		namenode.DataNodes[max[i]].ChunkAvail = namenode.DataNodes[max[i]].ChunkAvail[0 : n-1]
-		namenode.DataNodes[max[i]].StorageAvail--
+			namenode.DataNodes[max[i]].ChunkAvail[0] = namenode.DataNodes[max[i]].ChunkAvail[n-1]
+			namenode.DataNodes[max[i]].ChunkAvail = namenode.DataNodes[max[i]].ChunkAvail[0 : n-1]
+			namenode.DataNodes[max[i]].StorageAvail--
+		}(i)
+		wg.Done()
 	}
-
+	wg.Wait()
 	return rlList
 }
 
