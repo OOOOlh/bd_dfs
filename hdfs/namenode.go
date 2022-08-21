@@ -132,23 +132,48 @@ func (namenode *NameNode) Run() {
 	//	c.JSON(http.StatusOK, file)
 	//})
 
-	router.POST("/getfolder", func(context *gin.Context) {
+	// Folder ReName
+	router.POST("/reFolderName", func(context *gin.Context) {
 		b, _ := context.GetRawData() // 从c.Request.Body读取请求数据
 		var dataMap map[string]string
 		if err := json.Unmarshal(b, &dataMap); err != nil {
 			fmt.Println("namenode put json to byte error", err)
 		}
-		fmt.Println("there:")
-		fmt.Println(dataMap["fname"])
-		files, folders := namenode.NameSpace.GetFileList(dataMap["fname"])
+		res := namenode.NameSpace.ReNameFolderName(dataMap["preFolder"], dataMap["reNameFolder"])
+		if res {
+			context.JSON(http.StatusOK, 1)
+		}
+		context.JSON(http.StatusOK, -1)
+
+	})
+
+	//get Folders fromr cur path
+	router.POST("/getFolders", func(context *gin.Context) {
+		b, _ := context.GetRawData() // 从c.Request.Body读取请求数据
+		var dataMap map[string]string
+		if err := json.Unmarshal(b, &dataMap); err != nil {
+			fmt.Println("namenode put json to byte error", err)
+		}
+		_, folders := namenode.NameSpace.GetFileList(dataMap["fname"])
+		var filenames []string
+		for i := 0; i < len(folders); i++ {
+			filenames = append(filenames, folders[i].Name)
+		}
+		context.JSON(http.StatusOK, filenames)
+	})
+	// get Files from cur path
+	router.POST("/getFiles", func(context *gin.Context) {
+		b, _ := context.GetRawData() // 从c.Request.Body读取请求数据
+		var dataMap map[string]string
+		if err := json.Unmarshal(b, &dataMap); err != nil {
+			fmt.Println("namenode put json to byte error", err)
+		}
+		files, _ := namenode.NameSpace.GetFileList(dataMap["fname"])
 		var filenames []string
 		for i := 0; i < len(files); i++ {
 			filenames = append(filenames, files[i].Name)
 		}
-		fmt.Println("folder:")
-		fmt.Println(folders[0].Name)
 		context.JSON(http.StatusOK, filenames)
-		//context.JSON(http.StatusOK, 1)
 	})
 
 	//router.GET("/getfolder/:foldername", func(c *gin.Context) {

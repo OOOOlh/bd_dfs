@@ -90,6 +90,45 @@ type File struct {
 	RemotePath string
 }
 
+// 修改目录名
+func (Node *Folder) ReNameFolderName(preFolder string, reNameFolder string) bool {
+	path := strings.Split(preFolder, "/")[1:]
+	prePath := path[:len(path)-1]
+	preFolderName := path[len(path)-1]
+	newFolderName := reNameFolder
+	index := 0
+	for index < len(prePath) {
+		if Node.Name == prePath[index] {
+			index++
+			if index >= len(prePath) {
+				for _, item := range Node.Folder {
+					if item.Name == preFolderName {
+						item.Name = newFolderName
+						return true
+					}
+				}
+				return false
+			}
+			for _, node := range Node.Folder {
+				if node.Name == prePath[index] {
+					Node = node
+					index++
+					if index >= len(prePath) {
+						for _, item := range Node.Folder {
+							if item.Name == preFolderName {
+								item.Name = newFolderName
+								return true
+							}
+						}
+						return false
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
 //  /root/hdfs/dn/nn/
 // 根据目录结构查找文件列表
 func (Node *Folder) GetFileList(filePath string) ([]*File, []*Folder) {
