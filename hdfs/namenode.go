@@ -3,19 +3,16 @@ package hdfs
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/gin-gonic/gin"
 )
 
-/*
-	未添加功能：
-		防止重复
-*/
 func (namenode *NameNode) Run() {
 	router := gin.Default()
 	router.Use(MwPrometheusHttp)
@@ -42,7 +39,7 @@ func (namenode *NameNode) Run() {
 		//遍历所有文件夹，/root/下的所有文件夹
 		folder := &ff.Folder
 		// folder := &namenode.NameSpace.Folder
-		for _, p := range path[1:len(path)-1] {
+		for _, p := range path[1:] {
 			if p == ""{
 				continue
 			}
