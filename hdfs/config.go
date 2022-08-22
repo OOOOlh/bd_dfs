@@ -31,6 +31,7 @@ type ChunkUnit []byte // SPLIT_UNIT
 func (Node *Folder) CreateFolder(curPath string, folderName string) bool {
 	path := strings.Split(curPath, "/")[1:]
 	index := 0
+	fmt.Println(len(Node.Folder))
 	for index < len(path) {
 		if Node.Name == path[index] {
 			index++
@@ -45,6 +46,7 @@ func (Node *Folder) CreateFolder(curPath string, folderName string) bool {
 					[]*Folder{},
 					[]*File{},
 				})
+				fmt.Println(len(Node.Folder))
 				return true
 			}
 			for _, node := range Node.Folder {

@@ -162,7 +162,7 @@ func (client *Client) GetFile(fName string) { //, fName string
 	/* 将文件夹下的块数据整合成一个文件 */
 	client.AssembleFile(*file)
 }
-func (client *Client) Mkdir(curPath string, folderName string) bool {
+func (client *Client) Mkdir(curPath string, folderName string) {
 	dataMap := map[string]string{}
 	dataMap["curPath"] = curPath
 	dataMap["folderName"] = folderName
@@ -176,15 +176,17 @@ func (client *Client) Mkdir(curPath string, folderName string) bool {
 	if err != nil {
 		fmt.Println("http post error", err)
 	}
+	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("ioutil.ReadAll", err)
 	}
-
-	fmt.Println(body)
-	return true
+	var res []bool
+	if err = json.Unmarshal(body, &res); err != nil {
+		fmt.Println("byte[] to json error", err)
+	}
+	fmt.Println("success mkdir the folder:", res)
 }
-
 func (client *Client) ReNameFolder(preFolder string, reNameFolder string) {
 	data := map[string]string{"preFolder": preFolder, "reNameFolder": reNameFolder}
 	d, err := json.Marshal(data)
@@ -203,7 +205,11 @@ func (client *Client) ReNameFolder(preFolder string, reNameFolder string) {
 		fmt.Println("Client error at read response data", err.Error())
 		TDFSLogger.Fatal("Client error at read response data", err)
 	}
-	fmt.Println(bytes)
+	var res int
+	if err = json.Unmarshal(bytes, &res); err != nil {
+		fmt.Println("byte[] to json error", err)
+	}
+	fmt.Println(res)
 }
 
 // 获取指定目录下的目录列表
