@@ -90,6 +90,7 @@ func (client *Client) PutFile(localPath string, remotePath string) {
 			FastWrite(client.TempStoreLocation+"/"+file.Name+"/chunk-"+strconv.Itoa(i), data[i*SPLIT_UNIT:(i+1)*SPLIT_UNIT])
 		}
 		// 发送到datanode进行存储
+		fmt.Println("put")
 		PutChunk(client.TempStoreLocation+"/"+file.Name+"/chunk-"+strconv.Itoa(i), file.Chunks[i].ReplicaLocationList)
 	}
 	fmt.Println("putFile finish!")
@@ -325,23 +326,23 @@ func PutChunk(tempChunkPath string, replicationList [REDUNDANCE]ReplicaLocation)
 		writer := multipart.NewWriter(buf)
 		formFile, err := writer.CreateFormFile("putchunk", tempChunkPath)
 		if err != nil {
-			fmt.Println("XXX NameNode error at Create form file", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error: ", err)
+			fmt.Println("client error at Create form file", err.Error())
+			TDFSLogger.Fatal("client error: ", err)
 		}
 
 		/** Open source file **/
 		srcFile, err := os.Open(tempChunkPath)
 		if err != nil {
-			fmt.Println("XXX NameNode error at Open source file", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error: ", err)
+			fmt.Println("client error at Open source file", err.Error())
+			TDFSLogger.Fatal("client error: ", err)
 		}
 		defer srcFile.Close()
 
 		/** Write to form file **/
 		_, err = io.Copy(formFile, srcFile)
 		if err != nil {
-			fmt.Println("XXX NameNode error at Write to form file", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error: ", err)
+			fmt.Println("client error at Write to form file", err.Error())
+			TDFSLogger.Fatal("client error: ", err)
 		}
 
 		/** Set Params Before Post **/
@@ -351,19 +352,20 @@ func PutChunk(tempChunkPath string, replicationList [REDUNDANCE]ReplicaLocation)
 		for key, val := range params {
 			err = writer.WriteField(key, val)
 			if err != nil {
-				fmt.Println("XXX NameNode error at Set Params", err.Error())
-				TDFSLogger.Fatal("XXX NameNode error: ", err)
+				fmt.Println("client error at Set Params", err.Error())
+				TDFSLogger.Fatal("client error: ", err)
 			}
 		}
 
 		contentType := writer.FormDataContentType()
 		writer.Close() // 发送之前必须调用Close()以写入结尾行
 
+		fmt.Println(replicationList[i].ServerLocation+"/putchunk")
 		res, err := http.Post(replicationList[i].ServerLocation+"/putchunk",
 			contentType, buf) // /"+strconv.Itoa(chunkNum)
 		if err != nil {
-			fmt.Println("XXX NameNode error at Post form file", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error: ", err)
+			fmt.Println("client error at Post form file", err.Error())
+			TDFSLogger.Fatal("client error: ", err)
 		}
 		defer res.Body.Close()
 

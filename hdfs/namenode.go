@@ -77,7 +77,6 @@ func (namenode *NameNode) Run() {
 			fmt.Println("namenode put json to byte error", err)
 		}
 
-		// 去除最开始的斜杠
 		path := strings.Split(file.RemotePath, "/")
 
 		var n *Folder
@@ -86,33 +85,35 @@ func (namenode *NameNode) Run() {
 		//遍历所有文件夹，/root/下的所有文件夹
 		folder := &ff.Folder
 		// folder := &namenode.NameSpace.Folder
-		for _, p := range path[1:] {
-			if p == "" {
-				continue
-			}
-			//fmt.Println(p)
-			exist := false
-			for _, n = range *folder {
-				if p == n.Name {
-					exist = true
-					break
+		if len(path) != 2{
+			for _, p := range path[1:] {
+				if p == "" {
+					continue
+				}
+				exist := false
+				for _, n = range *folder {
+					if p == n.Name {
+						exist = true
+						break
+					}
+				}
+				//如果不存在，就新建一个文件夹
+				if !exist {
+					TDFSLogger.Println("namenode: file not exist")
+					var tempFloder Folder = Folder{}
+					tempFloder.Name = p
+					*folder = append(*folder, &tempFloder)
+					//下一层
+					folder = &(*folder)[len(*folder)-1].Folder
+					n = &tempFloder
+				} else {
+					folder = &n.Folder
 				}
 			}
-			//如果不存在，就新建一个文件夹
-			if !exist {
-				TDFSLogger.Println("namenode: file not exist")
-				var tempFloder Folder = Folder{}
-				tempFloder.Name = p
-				*folder = append(*folder, &tempFloder)
-				//下一层
-				folder = &(*folder)[len(*folder)-1].Folder
-				n = &tempFloder
-			} else {
-				folder = &n.Folder
-			}
-
+		}else{
+			n = ff
 		}
-
+		
 		//直接把文件写在当前文件夹下
 		var exist bool
 		var changed bool = true
@@ -134,6 +135,7 @@ func (namenode *NameNode) Run() {
 
 		var chunkNum int
 		var fileLength = int(file.Length)
+
 		if file.Length%int64(SPLIT_UNIT) == 0 {
 			chunkNum = fileLength / SPLIT_UNIT
 			file.OffsetLastChunk = 0
@@ -286,7 +288,6 @@ func (namenode *NameNode) AllocateChunk() (rlList [REDUNDANCE]ReplicaLocation) {
 	var wg sync.WaitGroup
 	wg.Add(REDUNDANCE)
 	for i := 0; i < redundance; i++ {
-		go func(i int) {
 			max[i] = 0
 			//找到目前空闲块最多的NA
 			for j := 0; j < namenode.DNNumber; j++ {
@@ -305,10 +306,7 @@ func (namenode *NameNode) AllocateChunk() (rlList [REDUNDANCE]ReplicaLocation) {
 			namenode.DataNodes[max[i]].ChunkAvail[0] = namenode.DataNodes[max[i]].ChunkAvail[n-1]
 			namenode.DataNodes[max[i]].ChunkAvail = namenode.DataNodes[max[i]].ChunkAvail[0 : n-1]
 			namenode.DataNodes[max[i]].StorageAvail--
-		}(i)
-		wg.Done()
 	}
-	wg.Wait()
 	return rlList
 }
 
