@@ -40,7 +40,7 @@ func (namenode *NameNode) Run() {
 		folder := &ff.Folder
 		// folder := &namenode.NameSpace.Folder
 		for _, p := range path[1:] {
-			if p == ""{
+			if p == "" {
 				continue
 			}
 			//fmt.Println(p)
@@ -208,12 +208,9 @@ func (namenode *NameNode) Run() {
 		if err := json.Unmarshal(b, &dataMap); err != nil {
 			fmt.Println("namenode put json to byte error", err)
 		}
-		if namenode.NameSpace.CreateFolder(dataMap["curPath"], dataMap["folderName"]) {
-			context.JSON(http.StatusOK, 1)
-		}
-		context.JSON(http.StatusOK, -1)
+		res := namenode.NameSpace.CreateFolder(dataMap["curPath"], dataMap["folderName"])
+		context.JSON(http.StatusOK, []bool{res})
 	})
-
 	router.Run(":" + strconv.Itoa(namenode.Port))
 }
 
