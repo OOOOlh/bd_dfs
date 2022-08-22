@@ -3,6 +3,7 @@ package hdfs
 import (
 	"fmt"
 	"strings"
+	"time"
 )
 
 /** Configurations for Pseudo Distributed Mode **/
@@ -10,7 +11,8 @@ import (
 /** Configurations for ALL Mode **/
 const SPLIT_UNIT int = 1000
 const REDUNDANCE int = 2
-
+const DN_CAPACITY int = 400
+const DN_DIR string = "./datanode"
 // const CHUNKTOTAL int = 400
 
 // Chunk 一律表示逻辑概念，表示文件块
@@ -235,6 +237,9 @@ type DataNode struct {
 	ChunkAvail   []int  `json:"ChunkAvail"` //空闲块表
 	LastEdit     int64  `json:"LastEdit"`
 	DATANODE_DIR string `json:"DATANODE_DIR"`
+	Ticker *time.Ticker
+	NNLocation []string
+	LastQuery int
 }
 type DNMeta struct {
 	StorageTotal int `json:"StorageTotal"`

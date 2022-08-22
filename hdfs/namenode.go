@@ -7,17 +7,64 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/gin-gonic/gin"
 )
 
+func (namenode *NameNode) MonitorDN(){
+	defer func () {
+		if x := recover(); x != nil{
+			TDFSLogger.Fatalf("panic when monitor DataNode, err: %v\n", x) 
+		}
+	}()
+
+	go func ()  {
+		for{
+			for i := 0; i < len(namenode.DataNodes); i++ {
+				t := time.Now().Minute()
+				//如果大于两分钟，就表示该DN出现问题，无法完成上报任务。新建一个节点，将所有数据复制到新节点上
+				if (t - namenode.DataNodes[i].LastQuery) > 2 {
+
+				}
+			}
+		}
+	}()
+}
+
+
 func (namenode *NameNode) Run() {
+	namenode.MonitorDN()
 	router := gin.Default()
 	router.Use(MwPrometheusHttp)
 	// register the `/metrics` route.
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+
+
+	//校验dn信息
+	router.POST("/heartbeat", func(c *gin.Context)  {
+		d, _ := c.GetRawData()
+		datanode := DataNode{}
+		// 反序列化
+		if len(d) == 0 {
+			fmt.Println("put request body为空")
+		}
+		if err := json.Unmarshal(d, &datanode); err != nil {
+			fmt.Println("namenode put json to byte error", err)
+		}
+
+		localDataNode := &namenode.DataNodes[namenode.Map[datanode.Location]]
+		localDataNode.LastQuery = time.Now().Minute()
+
+		//可用chunk数
+		if(len(datanode.ChunkAvail) != len(localDataNode.ChunkAvail)){
+			TDFSLogger.Fatalf("datanode %s : 可用chunk数目出错\n", datanode.Location)
+		}
+
+	})
+
 
 	router.POST("/put", func(c *gin.Context) {
 		b, _ := c.GetRawData() // 从c.Request.Body读取请求数据
@@ -31,7 +78,7 @@ func (namenode *NameNode) Run() {
 		}
 
 		// 去除最开始的斜杠
-		path := strings.Split(file.RemotePath, "/")[1:]
+		path := strings.Split(file.RemotePath, "/")
 
 		var n *Folder
 		ff := namenode.NameSpace

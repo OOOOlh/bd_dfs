@@ -18,7 +18,7 @@ func main() {
 	dn2.DATANODE_DIR = DN2_DIR
 
 	dn2.Reset()
-	dn2.SetConfig(DN2_LOCATION, DN2_CAPACITY)
+	dn2.SetConfig(DN2_LOCATION)
 
 	dn2.Run()
 }

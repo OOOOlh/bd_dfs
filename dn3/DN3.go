@@ -18,7 +18,7 @@ func main() {
 	dn3.DATANODE_DIR = DN3_DIR
 
 	dn3.Reset()
-	dn3.SetConfig(DN3_LOCATION, DN3_CAPACITY)
+	dn3.SetConfig(DN3_LOCATION)
 
 	dn3.Run()
 }

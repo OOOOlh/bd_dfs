@@ -1,20 +1,23 @@
 package hdfs
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"io"
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func (datanode *DataNode) Run() {
+
 	router := gin.Default()
 	router.Use(MwPrometheusHttp)
 	// register the `/metrics` route.
@@ -132,17 +135,50 @@ func (datanode *DataNode) Run() {
 	router.Run(":" + strconv.Itoa(datanode.Port))
 }
 
-func (datanode *DataNode) SetConfig(location string, storageTotal int) {
-	temp := strings.Split(location, ":")
-	res, err := strconv.Atoi(temp[2])
+func (datanode *DataNode) SendHeartbeat(){
+	defer func () {
+		if x := recover(); x != nil{
+			TDFSLogger.Fatalf("panic when DataNode %s send heartbeat to namenode, err: %v\n", datanode.Location, x) 
+		}
+	}()
+
+	//每1min上报一次
+	datanode.Ticker = time.NewTicker(time.Minute)
+
+	for{
+		<- datanode.Ticker.C
+		go func ()  {
+
+			d, err := json.Marshal(datanode)
+			if err != nil {
+				fmt.Println("json to byte[] error", err)
+			}
+			// 序列化
+			reader := bytes.NewReader(d)
+			_, err = http.Post(datanode.NNLocation[0]+"/heartbeat", "application/json", reader)
+			if err != nil {
+				fmt.Println("http post error", err)
+			}
+		}()
+
+	}
+}
+
+func (datanode *DataNode) SetConfig(port string) {
+	//所有NN地址
+	dnlocations := []string{"http://localhost:11090"}
+
+	res, err := strconv.Atoi(port)
 	if err != nil {
 		fmt.Println("XXX DataNode error at Atoi parse Port", err.Error())
 		TDFSLogger.Fatal("XXX DataNode error: ", err)
 	}
+	datanode.DATANODE_DIR = DN_DIR
 	datanode.Port = res
-	datanode.Location = location
-	datanode.StorageTotal = storageTotal
+	datanode.Location = "http://localhost:" + port
+	datanode.StorageTotal = DN_CAPACITY
 	datanode.StorageAvail = datanode.StorageTotal
+	datanode.NNLocation = dnlocations
 
 	datanode.ChunkAvail = append(datanode.ChunkAvail, 0)
 	for i := 1; i < datanode.StorageAvail; i++ {
@@ -161,6 +197,7 @@ func (datanode *DataNode) SetConfig(location string, storageTotal int) {
 	fmt.Println("************************************************************")
 }
 
+//目前是datanode断电就删除原来的数据
 func (datanode *DataNode) Reset() {
 	var i int = 0
 	for i < datanode.StorageTotal {

@@ -71,12 +71,6 @@ func (client *Client) PutFile(localPath string, remotePath string) {
 		fmt.Println("byte[] to json error", err)
 	}
 
-	//如果发现存在一模一样的文件，就直接返回
-	// if len(file.Chunks) == 0{
-	// 	fmt.Println("发现相同文件，返回")
-	// 	return
-	// }
-
 	//创建目录
 	err = os.MkdirAll(client.TempStoreLocation+"/"+file.Name, 0777)
 	if err != nil {

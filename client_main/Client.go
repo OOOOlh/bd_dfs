@@ -46,11 +46,6 @@ func main() {
 
 	reNameFolder := flag.String("reNameFolder", "unknow", "the name of folder you want to check")
 	flag.Parse()
-	// 上传
-	if *localFilePath != "unknow" && *remoteFilePath != "unknow" {
-		client.PutFile(*localFilePath, *remoteFilePath)
-		fmt.Println(" -Put local file=%v at remote file=%v ", *localFilePath, *remoteFilePath)
-	}
 	// 读取
 	if *filenameOfGet != "unknow" {
 		client.GetFile(*filenameOfGet)
@@ -60,7 +55,7 @@ func main() {
 	//Put
 	if *localFilePath != "unknow" && *remoteFilePath != "unknow" {
 		client.PutFile(*localFilePath, *remoteFilePath)
-		fmt.Printf(" PutFile %s to %s ", *localFilePath, *remoteFilePath)
+		fmt.Printf(" PutFile %s to %s \n", *localFilePath, *remoteFilePath)
 	}
 	// 删除
 	if *filenameOfDel != "unknow" {
