@@ -44,6 +44,7 @@ func main() {
 	curFolder := flag.String("curFolder", "unknow", "the folder you want to make")
 	newFolder := flag.String("newFolder", "unknow", "the name of folder you want to check")
 
+	reNameFolder := flag.String("reNameFolder", "unknow", "the name of folder you want to check")
 	flag.Parse()
 	// 上传
 	if *localFilePath != "unknow" && *remoteFilePath != "unknow" {
@@ -72,10 +73,20 @@ func main() {
 		client.Mkdir(*curFolder, *newFolder)
 		fmt.Println("-Mkdir for ", *curFolder)
 	}
-
 	// 获取指定目录下的文件列表
 	if *folderNameOfGet != "unknow" {
 		client.GetFolder(*folderNameOfGet)
-		fmt.Println(" -Getfolder for ", *folderNameOfGet)
+		fmt.Println(" -GetFiles for ", *folderNameOfGet)
+	}
+
+	//获取指定目录文件的的目录列表
+	if *curFolder != "unkonw" {
+		client.GetFolder(*curFolder)
+		fmt.Println("-GetFolders for")
+	}
+	// 对目录进行重命名
+	if *curFolder != "unkonw" && *reNameFolder != "unkonw" {
+		client.ReNameFolder(*curFolder, *reNameFolder)
+		fmt.Printf("-ReName Folder for %s to %s", *curFolder, *reNameFolder)
 	}
 }

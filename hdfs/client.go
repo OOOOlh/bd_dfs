@@ -185,41 +185,80 @@ func (client *Client) Mkdir(curPath string, folderName string) bool {
 	return true
 }
 
+func (client *Client) ReNameFolder(preFolder string, reNameFolder string) {
+	data := map[string]string{"preFolder": preFolder, "reNameFolder": reNameFolder}
+	d, err := json.Marshal(data)
+	if err != nil {
+		fmt.Println("json to byte[] error", err)
+	}
+	reader := bytes.NewReader(d)
+	response, err := http.Post(client.NameNodeAddr+"/reFolderName", "application/json", reader)
+	if err != nil {
+		fmt.Println("Client error at Get folder", err.Error())
+		TDFSLogger.Fatal("Client error at Get folder", err)
+	}
+	defer response.Body.Close()
+	bytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		fmt.Println("Client error at read response data", err.Error())
+		TDFSLogger.Fatal("Client error at read response data", err)
+	}
+	fmt.Println(bytes)
+}
+
+// 获取指定目录下的目录列表
+func (client *Client) GetCurPathFolder(folderPath string) {
+	data := map[string]string{"fname": folderPath}
+	d, err := json.Marshal(data)
+	if err != nil {
+		fmt.Println("json to byte[] error", err)
+	}
+	reader := bytes.NewReader(d)
+	response, err := http.Post(client.NameNodeAddr+"/getFolders", "application/json", reader)
+	if err != nil {
+		fmt.Println("Client error at Get folder", err.Error())
+		TDFSLogger.Fatal("Client error at Get folder", err)
+	}
+	defer response.Body.Close()
+	bytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		fmt.Println("Client error at read response data", err.Error())
+		TDFSLogger.Fatal("Client error at read response data", err)
+	}
+	var folder []string
+	if err = json.Unmarshal(bytes, &folder); err != nil {
+		fmt.Println("byte[] to json error", err)
+	}
+	fmt.Println("success get the filename list in this folder:", folder)
+}
+
 //new added
 func (client *Client) GetFolder(fName string) { //fName string
-
 	fmt.Println("****************************************")
 	fmt.Printf("*** Getting from TDFS [NameNode: %s] to ${GOPATH}/%s )\n", client.NameNodeAddr, fName) //  as %s , fName
-
 	//response, err := http.Get(client.NameNodeAddr + "/getfolder/" + fName)
-
 	data := map[string]string{"fname": fName}
 	d, err := json.Marshal(data)
 	if err != nil {
 		fmt.Println("json to byte[] error", err)
 	}
 	reader := bytes.NewReader(d)
-	response, err := http.Post(client.NameNodeAddr+"/getfolder", "application/json", reader)
-
+	response, err := http.Post(client.NameNodeAddr+"/getFiles", "application/json", reader)
 	if err != nil {
 		fmt.Println("Client error at Get folder", err.Error())
 		TDFSLogger.Fatal("Client error at Get folder", err)
 	}
 	defer response.Body.Close()
-
 	bytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		fmt.Println("Client error at read response data", err.Error())
 		TDFSLogger.Fatal("Client error at read response data", err)
 	}
-
 	var folder []string
 	if err = json.Unmarshal(bytes, &folder); err != nil {
 		fmt.Println("byte[] to json error", err)
 	}
-
 	fmt.Println("success get the filename list in this folder:", folder)
-
 }
 
 func (client *Client) DelFile(fName string) {
