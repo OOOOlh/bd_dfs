@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -21,19 +22,50 @@ func (namenode *NameNode) MonitorDN(){
 		}
 	}()
 
+	time.Sleep(4 * time.Second)
 	go func ()  {
 		for{
 			for i := 0; i < len(namenode.DataNodes); i++ {
-				t := time.Now().Minute()
-				//如果大于两分钟，就表示该DN出现问题，无法完成上报任务。新建一个节点，将所有数据复制到新节点上
-				if (t - namenode.DataNodes[i].LastQuery) > 2 {
+				t := time.Now().Second() - namenode.DataNodes[i].LastQuery
+				//如果大于一分钟，就表示该DN出现问题，无法完成上报任务。新建一个节点，将所有数据复制到新节点上
+				if t > 60 {
+					fmt.Printf("t为%d, 另一个为%d\n", t, namenode.DataNodes[i].LastQuery)
+					fmt.Println("namenode的备用dn数为：", len(namenode.StandByDataNode))
+					TDFSLogger.Printf("%s节点超过规定时间间隔%d，开始建立新DataNode\n", namenode.DataNodes[i].Location, t)
+					s := namenode.StandByDataNode[0]
+					//启动新的datanode节点
+					namenode.StartNewDataNode(s)
 
+					//向namenode中添加新的datanode节点
+					//向新的dn发送元数据查询请求，返回的元数据保存
+					newLocation := "http://localhost:" + s[4]
+					TDFSLogger.Printf("新的DataNode节点地址为%s\n", newLocation)
+					namenode.Map[newLocation] = i
+					response, err := http.Get(newLocation + "/getmeta")
+					if err != nil {
+						fmt.Println("XXX NameNode error at Get meta of ", newLocation, ": ", err.Error())
+						TDFSLogger.Fatal("XXX NameNode error: ", err)
+					}
+					defer response.Body.Close()
+
+					var dn DataNode
+					err = json.NewDecoder(response.Body).Decode(&dn)
+					if err != nil {
+						fmt.Println("XXX NameNode error at decode response to json.", err.Error())
+						TDFSLogger.Fatal("XXX NameNode error: ", err)
+					}
+					// fmt.Println(dn)
+					// err = json.Unmarshal([]byte(str), &dn)
+					namenode.DataNodes = append(namenode.DataNodes, dn)
+					//用后即删
+					namenode.StandByDataNode = namenode.StandByDataNode[1:]
+
+					
 				}
 			}
 		}
 	}()
 }
-
 
 func (namenode *NameNode) Run() {
 	namenode.MonitorDN()
@@ -41,7 +73,6 @@ func (namenode *NameNode) Run() {
 	router.Use(MwPrometheusHttp)
 	// register the `/metrics` route.
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
-
 
 	//校验dn信息
 	router.POST("/heartbeat", func(c *gin.Context)  {
@@ -56,7 +87,7 @@ func (namenode *NameNode) Run() {
 		}
 
 		localDataNode := &namenode.DataNodes[namenode.Map[datanode.Location]]
-		localDataNode.LastQuery = time.Now().Minute()
+		localDataNode.LastQuery = time.Now().Second()
 
 		//可用chunk数
 		if(len(datanode.ChunkAvail) != len(localDataNode.ChunkAvail)){
@@ -165,7 +196,6 @@ func (namenode *NameNode) Run() {
 	router.GET("/getfile", func(c *gin.Context) {
 		filename := c.Query("filename")
 		fmt.Println("$ getfile ...", filename)
-		TDFSLogger.Println("filename")
 		node := namenode.NameSpace
 		file, err := node.GetFileNode(filename)
 		if err != nil {
@@ -369,7 +399,34 @@ func (namenode *NameNode) GetDNMeta() { // UpdateMeta
 		}
 		// fmt.Println(dn)
 		// err = json.Unmarshal([]byte(str), &dn)
+		dn.LastQuery = time.Now().Second()
 		namenode.DataNodes = append(namenode.DataNodes, dn)
 	}
 	namenode.ShowInfo()
+}
+
+func (namenode *NameNode) StartNewDataNode(c []string){
+	var attr = os.ProcAttr{
+		Dir: "../dn",
+		Env: os.Environ(),
+		Files: []*os.File{
+			os.Stdin,
+			nil,
+			nil,
+		},
+		// Sys: sysproc,
+	}
+
+	process, err := os.StartProcess(c[0], c, &attr)
+	if err == nil {
+		// It is not clear from docs, but Realease actually detaches the process
+		err = process.Release()
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+
+	} else {
+		fmt.Println(err.Error())
+	}
+
 }

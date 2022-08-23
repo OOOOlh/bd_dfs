@@ -2,6 +2,7 @@ package hdfs
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"time"
 )
@@ -230,6 +231,8 @@ type NameNode struct {
 	// 冗余块
 	REDUNDANCE int
 	Map        map[string]int
+
+	StandByDataNode [][]string
 }
 type DataNode struct {
 	Location     string `json:"Location"` // http://IP:Port/
@@ -242,6 +245,7 @@ type DataNode struct {
 	Ticker *time.Ticker
 	NNLocation []string
 	LastQuery int
+	DNLogger *log.Logger
 }
 type DNMeta struct {
 	StorageTotal int `json:"StorageTotal"`

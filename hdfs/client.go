@@ -90,7 +90,6 @@ func (client *Client) PutFile(localPath string, remotePath string) {
 			FastWrite(client.TempStoreLocation+"/"+file.Name+"/chunk-"+strconv.Itoa(i), data[i*SPLIT_UNIT:(i+1)*SPLIT_UNIT])
 		}
 		// 发送到datanode进行存储
-		fmt.Println("put")
 		PutChunk(client.TempStoreLocation+"/"+file.Name+"/chunk-"+strconv.Itoa(i), file.Chunks[i].ReplicaLocationList)
 	}
 	fmt.Println("putFile finish!")
@@ -392,15 +391,16 @@ func (client *Client) GetChunk(file *File, num int) { //ChunkUnit chunkbytes []b
 		url := replicalocation + "/getchunk/" + strconv.Itoa(repilcanum)
 		dataResp, err := http.Get(url)
 		if err != nil {
-			fmt.Println("XXX NameNode error at Get chunk of ", file.Info, ": ", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error: ", err)
+			fmt.Println("Client error at Get chunk of ", file.Info, ": ", err)
+			TDFSLogger.Println("Client error: ", err)
+			continue
 		}
 		defer dataResp.Body.Close()
 		/* deal response of Get */
 		chunkbytes, err := ioutil.ReadAll(dataResp.Body)
 		if err != nil {
-			fmt.Println("XXX NameNode error at ReadAll response of chunk", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error: ", err)
+			fmt.Println("Client error at ReadAll response of chunk", err.Error())
+			TDFSLogger.Fatal("Client error: ", err)
 		}
 		// fmt.Println("** DataNode Response of Get chunk-",num,": ", string(chunkbytes))
 		/* store chunkdata at nn local */

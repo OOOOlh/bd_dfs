@@ -36,7 +36,7 @@ func CreateFile(fileName string) (newFile *os.File) {
 	newFile, err := os.Create(fileName)
   if err != nil {
 		fmt.Println("XXX Utils error at CreateFile", err.Error())
-        TDFSLogger.Fatal("XXX Utils error at CreateFile", err)
+    TDFSLogger.Fatal("XXX Utils error at CreateFile", err)
 	}
 	// TDFSLogger.Println(newFile)
 	return newFile
@@ -130,8 +130,8 @@ func readFileLimitedBytes(fileName string, limit int64){
 func readFileByBytes(fileName string)([]byte){
 	file, err := os.Open(fileName)
     if err != nil {
-		fmt.Println("XXX Utils error at readFileByBytes(open): ", err.Error())
-        TDFSLogger.Fatal("XXX Utils error at readFileByBytes(open): ", err)
+		fmt.Printf("Utils error at readFileByBytes(open)%s, err: %v\n", fileName, err.Error())
+    TDFSLogger.Fatalf("Utils error at readFileByBytes(open)%s, err: %v\n", fileName, err.Error())
 	}
 	data, err := ioutil.ReadAll(file)
 	if err != nil { 
