@@ -16,6 +16,7 @@ import (
 )
 
 func (client *Client) PutFile(localPath string, remotePath string) {
+	sugarLogger.Info("client put file")
 	//删除上次的临时文件
 	_, err := os.Stat(client.TempStoreLocation)
 	//如果存在，就移除

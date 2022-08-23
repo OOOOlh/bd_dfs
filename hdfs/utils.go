@@ -15,7 +15,7 @@ func splitToFileAndStore(fileName string, storeFile string) (chunkLen int,offset
 		FastWrite(storeFile+strconv.Itoa(i), data[i*SPLIT_UNIT:(i+1)*SPLIT_UNIT])
 		i++
 	}
-	FastWrite(storeFile+strconv.Itoa(i), data[i*SPLIT_UNIT:len(data)])
+	FastWrite(storeFile+strconv.Itoa(i), data[i*SPLIT_UNIT:])
 	chunkLen = i
 	offsetLast = len(data) - i*SPLIT_UNIT
 
@@ -165,7 +165,7 @@ func SplitToChunksByName(bigFileName string) (chunklist []ChunkUnit, dataLen int
 		chunklist = append(chunklist, data[i*SPLIT_UNIT:(i+1)*SPLIT_UNIT])
 		i++
 	}
-	chunklist = append(chunklist, data[i*SPLIT_UNIT:len(data)])
+	chunklist = append(chunklist, data[i*SPLIT_UNIT:])
 	return chunklist, dataLen
 }
 
@@ -181,6 +181,6 @@ func SplitToChunksByFobj(bigFile *os.File) (chunklist []ChunkUnit, dataLen int){
 		chunklist[i] = data[i*SPLIT_UNIT:(i+1)*SPLIT_UNIT]
 		i++
 	}
-	chunklist[i] = data[i*SPLIT_UNIT:len(data)]
+	chunklist[i] = data[i*SPLIT_UNIT:]
 	return chunklist, dataLen
 }

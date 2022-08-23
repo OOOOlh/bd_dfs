@@ -18,20 +18,19 @@ import (
 func (namenode *NameNode) MonitorDN(){
 	defer func () {
 		if x := recover(); x != nil{
-			TDFSLogger.Fatalf("panic when monitor DataNode, err: %v\n", x) 
+			sugarLogger.Errorf("panic when monitor DataNode, err: %v\n", x)
 		}
 	}()
 
-	time.Sleep(4 * time.Second)
 	go func ()  {
 		for{
 			for i := 0; i < len(namenode.DataNodes); i++ {
 				t := time.Now().Second() - namenode.DataNodes[i].LastQuery
 				//如果大于一分钟，就表示该DN出现问题，无法完成上报任务。新建一个节点，将所有数据复制到新节点上
 				if t > 60 {
-					fmt.Printf("t为%d, 另一个为%d\n", t, namenode.DataNodes[i].LastQuery)
-					fmt.Println("namenode的备用dn数为：", len(namenode.StandByDataNode))
-					TDFSLogger.Printf("%s节点超过规定时间间隔%d，开始建立新DataNode\n", namenode.DataNodes[i].Location, t)
+					// fmt.Printf("t为%d, 另一个为%d\n", t, namenode.DataNodes[i].LastQuery)
+					// fmt.Println("namenode的备用dn数为：", len(namenode.StandByDataNode))
+					sugarLogger.Infof("%s节点超过规定时间间隔%d，开始建立新DataNode\n", namenode.DataNodes[i].Location, t)
 					s := namenode.StandByDataNode[0]
 					//启动新的datanode节点
 					namenode.StartNewDataNode(s)
@@ -39,7 +38,7 @@ func (namenode *NameNode) MonitorDN(){
 					//向namenode中添加新的datanode节点
 					//向新的dn发送元数据查询请求，返回的元数据保存
 					newLocation := "http://localhost:" + s[4]
-					TDFSLogger.Printf("新的DataNode节点地址为%s\n", newLocation)
+					sugarLogger.Infof("新的DataNode节点地址为%s\n", newLocation)
 					namenode.Map[newLocation] = i
 					response, err := http.Get(newLocation + "/getmeta")
 					if err != nil {
@@ -341,6 +340,7 @@ func (namenode *NameNode) AllocateChunk() (rlList [REDUNDANCE]ReplicaLocation) {
 }
 
 func (namenode *NameNode) SetConfig(location string, dnnumber int, redundance int, dnlocations []string) {
+	sugarLogger.Infof("setconfig")
 	temp := strings.Split(location, ":")
 	res, err := strconv.Atoi(temp[2])
 	if err != nil {

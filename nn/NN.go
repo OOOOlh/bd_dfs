@@ -4,7 +4,6 @@ import "hdfs/hdfs"
 
 const NN_DIR string = "./namenode"
 const NN_LOCATION string = "http://localhost:11090"
-// const NN_DNNumber int = 3 // 2
 const rEDUNDANCE int = 2
 const EXEC string = "dn.exe"
 
