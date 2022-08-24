@@ -14,6 +14,7 @@ const SPLIT_UNIT int = 1000
 const REDUNDANCE int = 2
 const DN_CAPACITY int = 400
 const DN_DIR string = "./datanode"
+
 // const CHUNKTOTAL int = 400
 
 // Chunk 一律表示逻辑概念，表示文件块
@@ -76,6 +77,31 @@ func (Node *Folder) CreateFolder(curPath string, folderName string) bool {
 	return false
 }
 
+// 获取文件Chunk返回的结构体
+type FileChunkResponse struct {
+	Path   string
+	Chunks []FileChunk
+}
+
+func (Node *Folder) GetFilesChunkLocation() []FileChunkResponse {
+	res := []FileChunkResponse{}
+	// 回溯访问所有文件且获得FileChunks
+	path := []string{"/root"}
+	var backtracking func(Node *Folder)
+	backtracking = func(Node *Folder) {
+		for _, file := range Node.Files {
+			res = append(res, FileChunkResponse{strings.Join(path, "/") + "/" + file.Name, file.Chunks})
+		}
+		for _, folder := range Node.Folder {
+			path = append(path, folder.Name)
+			backtracking(folder)
+			path = path[:len(path)-1]
+		}
+	}
+	backtracking(Node)
+	return res
+}
+
 // DataNode的TreeStruct
 type Folder struct {
 	Name string
@@ -91,8 +117,7 @@ type File struct {
 	Chunks          []FileChunk
 	OffsetLastChunk int
 	Info            string // file info
-
-	RemotePath string
+	RemotePath      string
 }
 
 // 修改目录名
@@ -242,10 +267,10 @@ type DataNode struct {
 	ChunkAvail   []int  `json:"ChunkAvail"` //空闲块表
 	LastEdit     int64  `json:"LastEdit"`
 	DATANODE_DIR string `json:"DATANODE_DIR"`
-	Ticker *time.Ticker
-	NNLocation []string
-	LastQuery int
-	DNLogger *log.Logger
+	Ticker       *time.Ticker
+	NNLocation   []string
+	LastQuery    int
+	DNLogger     *log.Logger
 }
 type DNMeta struct {
 	StorageTotal int `json:"StorageTotal"`

@@ -1,18 +1,9 @@
 package main
 
-import (
-	"fmt"
-	"sync"
-)
+import "fmt"
 
 func main() {
-	var wg sync.WaitGroup
-	wg.Add(5)
-	for i := 0; i < 5; i++ {
-		go func(i int) {
-			fmt.Printf("%d,%d ", i, i)
-			wg.Done()
-		}(i)
-	}
-	wg.Wait()
+	s := []int{1, 2, 3, 4}
+	fmt.Println(s[:3])
+	fmt.Println(s[3:6])
 }

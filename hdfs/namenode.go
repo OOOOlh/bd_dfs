@@ -15,16 +15,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (namenode *NameNode) MonitorDN(){
-	defer func () {
-		if x := recover(); x != nil{
-			TDFSLogger.Fatalf("panic when monitor DataNode, err: %v\n", x) 
+func (namenode *NameNode) MonitorDN() {
+	defer func() {
+		if x := recover(); x != nil {
+			TDFSLogger.Fatalf("panic when monitor DataNode, err: %v\n", x)
 		}
 	}()
 
 	time.Sleep(4 * time.Second)
-	go func ()  {
-		for{
+	go func() {
+		for {
 			for i := 0; i < len(namenode.DataNodes); i++ {
 				t := time.Now().Second() - namenode.DataNodes[i].LastQuery
 				//如果大于一分钟，就表示该DN出现问题，无法完成上报任务。新建一个节点，将所有数据复制到新节点上
@@ -60,7 +60,6 @@ func (namenode *NameNode) MonitorDN(){
 					//用后即删
 					namenode.StandByDataNode = namenode.StandByDataNode[1:]
 
-					
 				}
 			}
 		}
@@ -75,7 +74,7 @@ func (namenode *NameNode) Run() {
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	//校验dn信息
-	router.POST("/heartbeat", func(c *gin.Context)  {
+	router.POST("/heartbeat", func(c *gin.Context) {
 		d, _ := c.GetRawData()
 		datanode := DataNode{}
 		// 反序列化
@@ -90,12 +89,11 @@ func (namenode *NameNode) Run() {
 		localDataNode.LastQuery = time.Now().Second()
 
 		//可用chunk数
-		if(len(datanode.ChunkAvail) != len(localDataNode.ChunkAvail)){
+		if len(datanode.ChunkAvail) != len(localDataNode.ChunkAvail) {
 			TDFSLogger.Fatalf("datanode %s : 可用chunk数目出错\n", datanode.Location)
 		}
 
 	})
-
 
 	router.POST("/put", func(c *gin.Context) {
 		b, _ := c.GetRawData() // 从c.Request.Body读取请求数据
@@ -116,7 +114,7 @@ func (namenode *NameNode) Run() {
 		//遍历所有文件夹，/root/下的所有文件夹
 		folder := &ff.Folder
 		// folder := &namenode.NameSpace.Folder
-		if len(path) != 2{
+		if len(path) != 2 {
 			for _, p := range path[1:] {
 				if p == "" {
 					continue
@@ -141,10 +139,10 @@ func (namenode *NameNode) Run() {
 					folder = &n.Folder
 				}
 			}
-		}else{
+		} else {
 			n = ff
 		}
-		
+
 		//直接把文件写在当前文件夹下
 		var exist bool
 		var changed bool = true
@@ -290,6 +288,14 @@ func (namenode *NameNode) Run() {
 		res := namenode.NameSpace.CreateFolder(dataMap["curPath"], dataMap["folderName"])
 		context.JSON(http.StatusOK, []bool{res})
 	})
+
+	//获取当前所有文件对应的位置信息
+	router.GET("/getFilesChunkLocation", func(context *gin.Context) {
+		fileClunksLocation := namenode.NameSpace.GetFilesChunkLocation()
+		//addrChunks :=
+		context.JSON(http.StatusOK, fileClunksLocation)
+	})
+
 	router.Run(":" + strconv.Itoa(namenode.Port))
 }
 
@@ -318,24 +324,24 @@ func (namenode *NameNode) AllocateChunk() (rlList [REDUNDANCE]ReplicaLocation) {
 	var wg sync.WaitGroup
 	wg.Add(REDUNDANCE)
 	for i := 0; i < redundance; i++ {
-			max[i] = 0
-			//找到目前空闲块最多的NA
-			for j := 0; j < namenode.DNNumber; j++ {
-				//遍历每一个DN，找到空闲块最多的前redundance个DN
-				if namenode.DataNodes[j].StorageAvail > namenode.DataNodes[max[i]].StorageAvail {
-					max[i] = j
-				}
+		max[i] = 0
+		//找到目前空闲块最多的NA
+		for j := 0; j < namenode.DNNumber; j++ {
+			//遍历每一个DN，找到空闲块最多的前redundance个DN
+			if namenode.DataNodes[j].StorageAvail > namenode.DataNodes[max[i]].StorageAvail {
+				max[i] = j
 			}
+		}
 
-			//ServerLocation是DN地址
-			rlList[i].ServerLocation = namenode.DataNodes[max[i]].Location
-			//ReplicaNum是DN已用的块
-			rlList[i].ReplicaNum = namenode.DataNodes[max[i]].ChunkAvail[0]
-			n := namenode.DataNodes[max[i]].StorageAvail
+		//ServerLocation是DN地址
+		rlList[i].ServerLocation = namenode.DataNodes[max[i]].Location
+		//ReplicaNum是DN已用的块
+		rlList[i].ReplicaNum = namenode.DataNodes[max[i]].ChunkAvail[0]
+		n := namenode.DataNodes[max[i]].StorageAvail
 
-			namenode.DataNodes[max[i]].ChunkAvail[0] = namenode.DataNodes[max[i]].ChunkAvail[n-1]
-			namenode.DataNodes[max[i]].ChunkAvail = namenode.DataNodes[max[i]].ChunkAvail[0 : n-1]
-			namenode.DataNodes[max[i]].StorageAvail--
+		namenode.DataNodes[max[i]].ChunkAvail[0] = namenode.DataNodes[max[i]].ChunkAvail[n-1]
+		namenode.DataNodes[max[i]].ChunkAvail = namenode.DataNodes[max[i]].ChunkAvail[0 : n-1]
+		namenode.DataNodes[max[i]].StorageAvail--
 	}
 	return rlList
 }
@@ -405,7 +411,7 @@ func (namenode *NameNode) GetDNMeta() { // UpdateMeta
 	namenode.ShowInfo()
 }
 
-func (namenode *NameNode) StartNewDataNode(c []string){
+func (namenode *NameNode) StartNewDataNode(c []string) {
 	var attr = os.ProcAttr{
 		Dir: "../dn",
 		Env: os.Environ(),
@@ -416,7 +422,6 @@ func (namenode *NameNode) StartNewDataNode(c []string){
 		},
 		// Sys: sysproc,
 	}
-
 	process, err := os.StartProcess(c[0], c, &attr)
 	if err == nil {
 		// It is not clear from docs, but Realease actually detaches the process

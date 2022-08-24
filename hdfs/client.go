@@ -84,11 +84,16 @@ func (client *Client) PutFile(localPath string, remotePath string) {
 		// 存储在缓冲区中
 		CreateFile(client.TempStoreLocation + "/" + file.Name + "/chunk-" + strconv.Itoa(i))
 		//先在客户端本地分割
-		if len(data) < SPLIT_UNIT {
+		//if len(data) < SPLIT_UNIT {
+		//	FastWrite(client.TempStoreLocation+"/"+file.Name+"/chunk-"+strconv.Itoa(i), data[i*SPLIT_UNIT:])
+		//} else {
+
+		if i == len(file.Chunks)-1 {
 			FastWrite(client.TempStoreLocation+"/"+file.Name+"/chunk-"+strconv.Itoa(i), data[i*SPLIT_UNIT:])
 		} else {
 			FastWrite(client.TempStoreLocation+"/"+file.Name+"/chunk-"+strconv.Itoa(i), data[i*SPLIT_UNIT:(i+1)*SPLIT_UNIT])
 		}
+		//}
 		// 发送到datanode进行存储
 		PutChunk(client.TempStoreLocation+"/"+file.Name+"/chunk-"+strconv.Itoa(i), file.Chunks[i].ReplicaLocationList)
 	}
@@ -232,6 +237,39 @@ func (client *Client) GetCurPathFolder(folderPath string) {
 	fmt.Println("success get the filename list in this folder:", folder)
 }
 
+// 节点扩容
+func (client *Client) ExpandNode(nodeDir, nodePort string) {
+	fmt.Println("节点准备扩容")
+	fmt.Println("开始获取所有文件的当前地址")
+	response, err := http.Get(client.NameNodeAddr + "/getFilesChunkLocation")
+	if err != nil {
+		fmt.Println("Client error get FilesChunkLocation !")
+	}
+	defer response.Body.Close()
+	bytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		fmt.Println("Client error at read response data")
+	}
+	var FileChunks []FileChunkResponse
+	if err = json.Unmarshal(bytes, &FileChunks); err != nil {
+		fmt.Println("byte[] to json error", err)
+	}
+	// 节点均衡操作，将一些块移动到新加入的节点上去
+	// 划分新的数据到新节点上, 取数据的第一个块对应的第一个冗余块(一个两个冗余块)到新结点上去
+	transferChunk := map[string][]string{}
+	for _, fileChunk := range FileChunks {
+		preLocation := fileChunk.Chunks[0].ReplicaLocationList[0].ServerLocation
+		preReplicaNum := strconv.Itoa(fileChunk.Chunks[0].ReplicaLocationList[0].ReplicaNum)
+		transferChunk[fileChunk.Path] = []string{preLocation, preReplicaNum}
+	}
+	fmt.Println(transferChunk)
+	// 获取移动节点的数据
+
+	// 告诉nameNode更新目录树
+
+	fmt.Println(FileChunks)
+}
+
 //new added
 func (client *Client) GetFolder(fName string) { //fName string
 	fmt.Println("****************************************")
@@ -359,7 +397,7 @@ func PutChunk(tempChunkPath string, replicationList [REDUNDANCE]ReplicaLocation)
 		contentType := writer.FormDataContentType()
 		writer.Close() // 发送之前必须调用Close()以写入结尾行
 
-		fmt.Println(replicationList[i].ServerLocation+"/putchunk")
+		fmt.Println(replicationList[i].ServerLocation + "/putchunk")
 		res, err := http.Post(replicationList[i].ServerLocation+"/putchunk",
 			contentType, buf) // /"+strconv.Itoa(chunkNum)
 		if err != nil {

@@ -53,6 +53,10 @@ func main() {
 	//目录下重命名
 	reNameFolder := flag.String("reNameFolder", "unknow", "the name of folder you want to check")
 
+	// 节点扩容
+	newNodeDir := flag.String("newNodeDir", "unknow", "the newNode dir you want to check")
+	newNodePort := flag.String("newNodePort", "unknow", "the newNode newNodePort you want to check")
+
 	flag.Parse()
 	// 读取
 	if *filenameOfGet != "unknow" {
@@ -92,4 +96,11 @@ func main() {
 		client.ReNameFolder(*curFolder, *reNameFolder)
 		fmt.Printf("-ReName Folder for %s to %s", *curFolder, *reNameFolder)
 	}
+
+	// 节点扩容
+	if *newNodeDir != "unknow" && *newNodePort != "unknow" {
+		client.ExpandNode(*newNodeDir, *newNodePort)
+		fmt.Println("success create new node: #{*newNodeDir}, #{*newNodePort}")
+	}
+
 }

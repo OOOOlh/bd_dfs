@@ -37,7 +37,7 @@ func TestMkdir(t *testing.T) {
 
 func TestGetFileNode(t *testing.T) {
 	Nodes := getNodes()
-	File, err := Nodes.GetFileNode("root/data.txt")
+	File, err := Nodes.GetFileNode("/root/data.txt")
 	t.Log(File)
 	t.Log(err)
 }
