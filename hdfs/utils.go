@@ -15,7 +15,7 @@ func splitToFileAndStore(fileName string, storeFile string) (chunkLen int,offset
 		FastWrite(storeFile+strconv.Itoa(i), data[i*SPLIT_UNIT:(i+1)*SPLIT_UNIT])
 		i++
 	}
-	FastWrite(storeFile+strconv.Itoa(i), data[i*SPLIT_UNIT:len(data)])
+	FastWrite(storeFile+strconv.Itoa(i), data[i*SPLIT_UNIT:])
 	chunkLen = i
 	offsetLast = len(data) - i*SPLIT_UNIT
 
@@ -36,7 +36,7 @@ func CreateFile(fileName string) (newFile *os.File) {
 	newFile, err := os.Create(fileName)
   if err != nil {
 		fmt.Println("XXX Utils error at CreateFile", err.Error())
-        TDFSLogger.Fatal("XXX Utils error at CreateFile", err)
+    TDFSLogger.Fatal("XXX Utils error at CreateFile", err)
 	}
 	// TDFSLogger.Println(newFile)
 	return newFile
@@ -130,8 +130,8 @@ func readFileLimitedBytes(fileName string, limit int64){
 func readFileByBytes(fileName string)([]byte){
 	file, err := os.Open(fileName)
     if err != nil {
-		fmt.Println("XXX Utils error at readFileByBytes(open): ", err.Error())
-        TDFSLogger.Fatal("XXX Utils error at readFileByBytes(open): ", err)
+		fmt.Printf("Utils error at readFileByBytes(open)%s, err: %v\n", fileName, err.Error())
+    TDFSLogger.Fatalf("Utils error at readFileByBytes(open)%s, err: %v\n", fileName, err.Error())
 	}
 	data, err := ioutil.ReadAll(file)
 	if err != nil { 
@@ -165,7 +165,7 @@ func SplitToChunksByName(bigFileName string) (chunklist []ChunkUnit, dataLen int
 		chunklist = append(chunklist, data[i*SPLIT_UNIT:(i+1)*SPLIT_UNIT])
 		i++
 	}
-	chunklist = append(chunklist, data[i*SPLIT_UNIT:len(data)])
+	chunklist = append(chunklist, data[i*SPLIT_UNIT:])
 	return chunklist, dataLen
 }
 
@@ -181,6 +181,6 @@ func SplitToChunksByFobj(bigFile *os.File) (chunklist []ChunkUnit, dataLen int){
 		chunklist[i] = data[i*SPLIT_UNIT:(i+1)*SPLIT_UNIT]
 		i++
 	}
-	chunklist[i] = data[i*SPLIT_UNIT:len(data)]
+	chunklist[i] = data[i*SPLIT_UNIT:]
 	return chunklist, dataLen
 }

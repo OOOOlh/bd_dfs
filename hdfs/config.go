@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"go.uber.org/zap"
 )
 
 /** Configurations for Pseudo Distributed Mode **/
@@ -12,6 +13,8 @@ import (
 const SPLIT_UNIT int = 1000
 const REDUNDANCE int = 2
 const HeartBeatInterval = 3 * time.Second
+const DN_CAPACITY int = 400
+const DN_DIR string = "./datanode"
 // const CHUNKTOTAL int = 400
 
 // Chunk 一律表示逻辑概念，表示文件块
@@ -32,6 +35,7 @@ type ChunkUnit []byte // SPLIT_UNIT
 func (Node *Folder) CreateFolder(curPath string, folderName string) bool {
 	path := strings.Split(curPath, "/")[1:]
 	index := 0
+	fmt.Println(len(Node.Folder))
 	for index < len(path) {
 		if Node.Name == path[index] {
 			index++
@@ -46,6 +50,7 @@ func (Node *Folder) CreateFolder(curPath string, folderName string) bool {
 					[]*Folder{},
 					[]*File{},
 				})
+				fmt.Println(len(Node.Folder))
 				return true
 			}
 			for _, node := range Node.Folder {
@@ -89,6 +94,45 @@ type File struct {
 	Info            string // file info
 
 	RemotePath string
+}
+
+// 修改目录名
+func (Node *Folder) ReNameFolderName(preFolder string, reNameFolder string) bool {
+	path := strings.Split(preFolder, "/")[1:]
+	prePath := path[:len(path)-1]
+	preFolderName := path[len(path)-1]
+	newFolderName := reNameFolder
+	index := 0
+	for index < len(prePath) {
+		if Node.Name == prePath[index] {
+			index++
+			if index >= len(prePath) {
+				for _, item := range Node.Folder {
+					if item.Name == preFolderName {
+						item.Name = newFolderName
+						return true
+					}
+				}
+				return false
+			}
+			for _, node := range Node.Folder {
+				if node.Name == prePath[index] {
+					Node = node
+					index++
+					if index >= len(prePath) {
+						for _, item := range Node.Folder {
+							if item.Name == preFolderName {
+								item.Name = newFolderName
+								return true
+							}
+						}
+						return false
+					}
+				}
+			}
+		}
+	}
+	return false
 }
 
 //  /root/hdfs/dn/nn/
@@ -192,6 +236,8 @@ type NameNode struct {
 	REDUNDANCE int
 	Map        map[string]int
 	Raft
+
+	StandByDataNode [][]string
 }
 type DataNode struct {
 	Location     string `json:"Location"` // http://IP:Port/
@@ -201,6 +247,11 @@ type DataNode struct {
 	ChunkAvail   []int  `json:"ChunkAvail"` //空闲块表
 	LastEdit     int64  `json:"LastEdit"`
 	DATANODE_DIR string `json:"DATANODE_DIR"`
+	// Ticker *time.Ticker
+	NNLocation []string
+	LastQuery int
+	// DNLogger *log.Logger
+	ZapLogger *zap.SugaredLogger
 }
 type DNMeta struct {
 	StorageTotal int `json:"StorageTotal"`

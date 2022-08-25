@@ -9,7 +9,7 @@ import "hdfs/hdfs"
 // "runtime"
 // "sync"
 const DN1_DIR string = "./datanode"
-const DN1_LOCATION string = "http://localhost:11091"
+const DN1_LOCATION string = "11091"
 const DN1_CAPACITY int = 400
 
 func main() {
@@ -17,6 +17,6 @@ func main() {
 	dn1.DATANODE_DIR = DN1_DIR
 	dn1.Reset()
 	// 位置  容量
-	dn1.SetConfig(DN1_LOCATION, DN1_CAPACITY)
+	dn1.SetConfig(DN1_LOCATION)
 	dn1.Run()
 }

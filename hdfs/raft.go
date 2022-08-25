@@ -30,6 +30,7 @@ type EditLog struct {
 	Path        string // 文件路径
 	IsDir       bool   // 是否是文件夹
 	CommitIndex int    // 日志Index
+	File        *File  // put携带的文件及chunk
 }
 
 type NNHeartBeat struct {
@@ -47,7 +48,7 @@ type Vote struct {
 	LeaderCommitIndex int    // 当前领导人已经提交的最大的日志索引值
 }
 
-func (namenode *NameNode) AddEditLog(action, path string, isDir bool) bool {
+func (namenode *NameNode) AddEditLog(action, path string, file *File, isDir bool) bool {
 	// 先写入leader日志
 	editLog := &EditLog{
 		Term:        namenode.Term,
@@ -55,6 +56,7 @@ func (namenode *NameNode) AddEditLog(action, path string, isDir bool) bool {
 		Path:        path,
 		IsDir:       isDir,
 		CommitIndex: namenode.CommitIndex + 1,
+		File:        file,
 	}
 	namenode.TmpLog = append(namenode.TmpLog, editLog)
 	fmt.Printf("receive tmp log=%+v\n", namenode.TmpLog)
@@ -189,9 +191,40 @@ func (namenode *NameNode) RunHeartBeat() {
 			rand.Seed(time.Now().UnixNano())
 			// [150-300ms]之间随机选择投票超时时间
 			voteTimeout := time.Duration(150 + rand.Intn(150))
-			fmt.Printf("voteTimeout=%+v\n", voteTimeout * time.Millisecond)
+			fmt.Printf("voteTimeout=%+v\n", voteTimeout*time.Millisecond)
 			namenode.HeartBeatTicker.Reset(voteTimeout * time.Millisecond)
 			namenode.doVote()
+		}
+	}
+}
+
+func (namenode *NameNode) ApplyEditLog(log *EditLog) {
+	switch log.Action {
+	case "put":
+		if log.File == nil {
+			return
+		}
+		chunk, _ := json.Marshal(log.File.Chunks)
+		fmt.Printf("receive chunk=%+v\n", string(chunk))
+		namenode.PutFile(log.File)
+		// 将chunk刷入namenode
+		for _, chunk := range log.File.Chunks {
+			for _, r := range chunk.ReplicaLocationList {
+				for j, _ := range namenode.DataNodes {
+					if namenode.DataNodes[j].Location == r.ServerLocation {
+						for i, c := range namenode.DataNodes[j].ChunkAvail {
+							if c == r.ReplicaNum {
+								namenode.DataNodes[j].ChunkAvail[i] = namenode.DataNodes[j].ChunkAvail[len(namenode.DataNodes[j].ChunkAvail)-1]
+								namenode.DataNodes[j].ChunkAvail = namenode.DataNodes[j].ChunkAvail[:len(namenode.DataNodes[j].ChunkAvail)-1]
+								namenode.DataNodes[j].StorageAvail--
+								fmt.Printf("change dn location=%+v replicaNum=%+v storage=%+v\n", namenode.DataNodes[j].Location, c, namenode.DataNodes[j].StorageAvail)
+								break
+							}
+						}
+						break
+					}
+				}
+			}
 		}
 	}
 }
