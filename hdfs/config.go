@@ -3,6 +3,7 @@ package hdfs
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	"go.uber.org/zap"
 )
@@ -201,8 +202,11 @@ type FileChunk struct {
 
 type ReplicaLocation struct {
 	//冗余块的位置
+	//index指对应的DN在NN数组中的下标
+	index int
 	ServerLocation string
 	ReplicaNum     int
+	OldNum int
 }
 
 type Client struct {
@@ -231,9 +235,11 @@ type NameNode struct {
 	// 冗余块
 	REDUNDANCE int
 	Map        map[string]int
-
 	StandByDataNode [][]string
+	Mu sync.Mutex
+	OldToNewMap map[string]string
 }
+
 type DataNode struct {
 	Location     string `json:"Location"` // http://IP:Port/
 	Port         int    `json:"Port"`
@@ -244,9 +250,12 @@ type DataNode struct {
 	DATANODE_DIR string `json:"DATANODE_DIR"`
 	// Ticker *time.Ticker
 	NNLocation []string
-	LastQuery int
+	LastQuery int64
 	// DNLogger *log.Logger
 	ZapLogger *zap.SugaredLogger
+	// Chunk []ReplicaLocation
+	ChunkCopy [DN_CAPACITY][REDUNDANCE]ReplicaLocation
+	
 }
 type DNMeta struct {
 	StorageTotal int `json:"StorageTotal"`

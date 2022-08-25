@@ -25,8 +25,7 @@ func splitToFileAndStore(fileName string, storeFile string) (chunkLen int,offset
 func FastWrite(fileName string, data []byte){
 	err := ioutil.WriteFile(fileName, data, 0666)
     if err != nil {
-		fmt.Println("XXX Utils error at FastWrite", err.Error())
-        TDFSLogger.Fatal("XXX Utils error at FastWrite", err)
+			sugarLogger.Error(err)
     }
 }
 
@@ -35,8 +34,7 @@ func CreateFile(fileName string) (newFile *os.File) {
 	fmt.Println(fileName)
 	newFile, err := os.Create(fileName)
   if err != nil {
-		fmt.Println("XXX Utils error at CreateFile", err.Error())
-    TDFSLogger.Fatal("XXX Utils error at CreateFile", err)
+		sugarLogger.Error(err)
 	}
 	// TDFSLogger.Println(newFile)
 	return newFile
@@ -45,7 +43,7 @@ func CreateFile(fileName string) (newFile *os.File) {
 func showFileInfo(fileName string){
 	fileInfo, err := os.Stat(fileName)
     if err != nil {
-        TDFSLogger.Fatal(err)
+			sugarLogger.Error(err)
     }
     fmt.Println("File name:", fileInfo.Name())
     fmt.Println("Size in bytes:", fileInfo.Size())
@@ -59,8 +57,7 @@ func showFileInfo(fileName string){
 func DeleteFile(fileName string){
 	err := os.Remove(fileName)
     if err != nil {
-		fmt.Println("XXX Utils error at DeleteFile ",fileName, ":", err.Error())
-        TDFSLogger.Fatal("XXX Utils error at DeleteFile ", err)
+			sugarLogger.Error(err)
     }
 }
 
@@ -75,8 +72,7 @@ func OpenFile(fileName string) (file *os.File) {
 	defer file.Close()
 	file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
     if err != nil {
-		fmt.Println("XXX Utils error at OpenFile :", err.Error())
-		TDFSLogger.Fatal("XXX Utils error at OpenFile :", err)
+			sugarLogger.Error(err)
     }
 	return file
 }
@@ -84,43 +80,37 @@ func OpenFile(fileName string) (file *os.File) {
 func copyFile(oriFilename string, newFilename string){
 	oriFile, err := os.Open(oriFilename)
     if err != nil {
-		fmt.Println("XXX Utils error at copyFile(Open) :", err.Error())
-        TDFSLogger.Fatal("XXX Utils error at copyFile(Open) :", err)
+			sugarLogger.Error(err)
     }
 	defer oriFile.Close()
 
 	newFile, err := os.Create(newFilename)
     if err != nil {
-		fmt.Println("XXX Utils error at copyFile(Create) :", err.Error())
-        TDFSLogger.Fatal("XXX Utils error at copyFile(Create) :", err)
+			sugarLogger.Error(err)
     }
     defer newFile.Close()
 	
 	bytesWritten, err := io.Copy(newFile, oriFile)
     if err != nil {
-		fmt.Println("XXX Utils error at copyFile(Copy) :", err.Error())
-        TDFSLogger.Fatal("XXX Utils error at copyFile(Copy) :", err)
+			sugarLogger.Error(err)
     }
-    TDFSLogger.Printf("Copied %d bytes.", bytesWritten)
+		sugarLogger.Infof("Copied %d bytes.", bytesWritten)
 
     err = newFile.Sync()
     if err != nil {
-		fmt.Println("XXX Utils error at copyFile(Sync) :", err.Error())
-        TDFSLogger.Fatal("XXX Utils error at copyFile(Sync) :", err)
+			sugarLogger.Error(err)
     }
 }
 
 func readFileLimitedBytes(fileName string, limit int64){
 	file, err := os.Open(fileName)
     if err != nil {
-		fmt.Println("XXX Utils error at readFileLimitedBytes(Open) :", err.Error())
-        TDFSLogger.Fatal("XXX Utils error at readFileLimitedBytes(Open) :", err)
+			sugarLogger.Error(err)
 	}
 	byteSlice := make([]byte, limit)
     numBytesRead, err := io.ReadFull(file, byteSlice)
     if err != nil {
-		fmt.Println("XXX Utils error at readFileLimitedBytes(ReadFull) :", err.Error())
-        TDFSLogger.Fatal("XXX Utils error at readFileLimitedBytes(ReadFull) :", err)
+			sugarLogger.Error(err)
     }
     fmt.Printf("Number of bytes read: %d\n", numBytesRead)
 	fmt.Printf("Data read: \n%s", byteSlice)
@@ -130,13 +120,11 @@ func readFileLimitedBytes(fileName string, limit int64){
 func readFileByBytes(fileName string)([]byte){
 	file, err := os.Open(fileName)
     if err != nil {
-		fmt.Printf("Utils error at readFileByBytes(open)%s, err: %v\n", fileName, err.Error())
-    TDFSLogger.Fatalf("Utils error at readFileByBytes(open)%s, err: %v\n", fileName, err.Error())
+			sugarLogger.Error(err)
 	}
 	data, err := ioutil.ReadAll(file)
 	if err != nil { 
-		fmt.Println("XXX Utils error at readFileByBytes(ReadAll): ", err.Error()) 
-		TDFSLogger.Fatal("XXX Utils error at readFileByBytes(ReadAll): ", err)
+		sugarLogger.Error(err)
 	}
 	// fmt.Printf("Data as hex: %x\n", data)
 	// fmt.Printf("Data as bytes: %b\n", data)
@@ -172,8 +160,7 @@ func SplitToChunksByName(bigFileName string) (chunklist []ChunkUnit, dataLen int
 func SplitToChunksByFobj(bigFile *os.File) (chunklist []ChunkUnit, dataLen int){
 	data, err := ioutil.ReadAll(bigFile)
     if err != nil {
-		fmt.Println("XXX Utils error at ReadAll", err.Error())
-		TDFSLogger.Fatal("XXX Utils error at ReadAll", err)
+			sugarLogger.Error(err)
 	}
 	var i int = 0;
 	dataLen = len(data)

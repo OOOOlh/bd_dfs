@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"strconv"
@@ -138,6 +140,119 @@ func (datanode *DataNode) Run() {
 		c.JSON(http.StatusOK, datanode)
 	})
 
+	//接收来自namenode的请求
+	router.POST("/fixchunk", func(c *gin.Context)  {
+		d, _ := c.GetRawData()
+		rm := &ReplicaLocation{}
+		// 反序列化
+		if len(d) == 0 {
+			fmt.Println("put request body为空")
+		}
+		if err := json.Unmarshal(d, &rm); err != nil {
+			fmt.Println("namenode put json to byte error", err)
+		}
+
+		//拿到新的DN位置后，将对应的文件块发送给新DN
+		buf := new(bytes.Buffer)
+		writer := multipart.NewWriter(buf)
+		chunkPath := datanode.DATANODE_DIR + "/chunk/chunk-" +  strconv.Itoa(rm.ReplicaNum)
+
+		formFile, err := writer.CreateFormFile("addchunk", chunkPath)
+		if err != nil {
+			fmt.Println("client error at Create form file", err.Error())
+			datanode.ZapLogger.Error("client error: ", err)
+		}
+
+		/** Open source file **/
+		srcFile, err := os.Open(chunkPath)
+		if err != nil {
+			datanode.ZapLogger.Error("client error at Open source file", err.Error())
+		}
+		defer srcFile.Close()
+
+		/** Write to form file **/
+		_, err = io.Copy(formFile, srcFile)
+		if err != nil {
+			datanode.ZapLogger.Error("client error at Write to form file", err.Error())
+		}
+
+		/** Set Params Before Post **/
+		params := map[string]string{
+			"ReplicaNum": strconv.Itoa(rm.OldNum), //chunkNum
+		}
+		for key, val := range params {
+			err = writer.WriteField(key, val)
+			if err != nil {
+				datanode.ZapLogger.Error("client error at Set Params", err.Error())
+			}
+		}
+
+		contentType := writer.FormDataContentType()
+		writer.Close() // 发送之前必须调用Close()以写入结尾行
+		
+		resp, err := http.Post(rm.ServerLocation + "/addnewchunk", contentType, buf)
+		if err != nil {
+			fmt.Println("http post error", err)
+		}
+		defer resp.Body.Close()
+
+		/** Read response **/
+		response, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			datanode.ZapLogger.Error("DataNode error at Read response", err.Error())
+		}
+		fmt.Print("*** DataNode Response: ", string(response))
+	})
+
+	//新DN接收来自其他DN的请求
+	//接收到请求后，新DN在本地建立一个新chunk，以及对应的哈希
+	router.POST("/addnewchunk", func(c *gin.Context) {
+		// c.Request.ParseMultipartForm(32 << 20) //上传最大文件限制32M
+		// chunkNum := c.Request.Form.Get("chunkNum") //通过这种方式在gin中也可以读取到POST的参数，ginb
+		ReplicaNum := c.PostForm("ReplicaNum")
+		datanode.ZapLogger.Infof("* ReplicaNum=%s", ReplicaNum)
+		// datanode.DNLogger.Printf("* ReplicaNum= %s\n", ReplicaNum)
+		file, _, err := c.Request.FormFile("addchunk")
+		if err != nil {
+			c.String(http.StatusBadRequest, "XXX Bad request")
+			datanode.ZapLogger.Fatalf("%s DataNode error: %v", datanode.Location, err)
+			// datanode.DNLogger.Fatalf("%s DataNode error: %v\n", datanode.Location, err)
+			return
+		}
+
+		//ReplicaNum是下一个将要被使用的chunk
+		chunkout, err := os.Create(datanode.DATANODE_DIR + "/chunk/chunk-" + ReplicaNum) //在服务器本地新建文件进行存储
+		if err != nil {
+			fmt.Println("XXX DataNode error at Create chunk file", err.Error())
+			datanode.ZapLogger.Fatalf("%s DataNode error at Create chunk file:%v", datanode.Location, err.Error())
+		}
+		defer chunkout.Close()
+
+		//file复制给chunkout
+		io.Copy(chunkout, file) //在服务器本地新建文件进行存储
+
+		//建立哈希
+		chunkdata := readFileByBytes(datanode.DATANODE_DIR + "/chunk/chunk-" + ReplicaNum)
+
+		hash := sha256.New()
+		// if _, err := io.Copy(hash, file); err != nil {fmt.Println("DataNode error at sha256", err.Error())}
+		hash.Write(chunkdata)
+		hashStr := hex.EncodeToString(hash.Sum(nil))
+		// fmt.Println("** chunk hash", ReplicaNum, ": %s", hashStr)
+		datanode.ZapLogger.Infof("chunk hash %s, hashStr %s", ReplicaNum, hashStr)
+		// datanode.DNLogger.Printf("chunk hash %s, hashStr %s\n", ReplicaNum, hashStr)
+		FastWrite(datanode.DATANODE_DIR+"/achunkhashs/chunkhash-"+ReplicaNum, []byte(hashStr))
+
+		//100
+		n := datanode.StorageAvail
+		datanode.ChunkAvail[0] = datanode.ChunkAvail[n-1]
+		datanode.ChunkAvail = datanode.ChunkAvail[0 : n-1]
+		datanode.StorageAvail--
+
+		fmt.Printf("每个chunk大小:%d Byte, 剩余可用chunk:%d, 总chunk:%d\n",SPLIT_UNIT, datanode.StorageAvail, datanode.StorageTotal)
+
+		c.String(http.StatusCreated, "AddChunk SUCCESS\n")
+	})
 	router.Run(":" + strconv.Itoa(datanode.Port))
 }
 
@@ -150,7 +265,7 @@ func (datanode *DataNode) SendHeartbeat(){
 	}()
 
 	//每15s上报一次
-	ticker := time.NewTicker(50 * time.Second)
+	ticker := time.NewTicker(15 * time.Second)
 	for{
 			<- ticker.C
 			datanode.ZapLogger.Infof("datanode %s 上传心跳", datanode.Location)
@@ -166,7 +281,7 @@ func (datanode *DataNode) SendHeartbeat(){
 				datanode.ZapLogger.Fatalf("%s Datanode send heartbeat http post error: %v", datanode.Location, err.Error())
 			}
 			defer resp.Body.Close()
-			datanode.ZapLogger.Infof("datanode %s 上传心跳完毕，收到回复%s", datanode.Location, resp.Status)
+			datanode.ZapLogger.Infof("datanode %s 上传心跳完毕,收到回复%s", datanode.Location, resp.Status)
 		}
 	}
 
@@ -223,7 +338,7 @@ func (datanode *DataNode) Reset() {
 	datanode.reset(datanode.DATANODE_DIR + "/achunkhashs")
 }
 
-func (datanode *DataNode)reset(dir string){
+func (datanode *DataNode) reset(dir string){
 	exist, err := PathExists(dir)
 	if err != nil {
 		// fmt.Println("XXX DataNode error at Get Dir chunkhashs", err.Error())

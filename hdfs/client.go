@@ -198,14 +198,12 @@ func (client *Client) ReNameFolder(preFolder string, reNameFolder string) {
 	reader := bytes.NewReader(d)
 	response, err := http.Post(client.NameNodeAddr+"/reFolderName", "application/json", reader)
 	if err != nil {
-		fmt.Println("Client error at Get folder", err.Error())
-		TDFSLogger.Fatal("Client error at Get folder", err)
+		sugarLogger.Error(err)
 	}
 	defer response.Body.Close()
 	bytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		fmt.Println("Client error at read response data", err.Error())
-		TDFSLogger.Fatal("Client error at read response data", err)
+		sugarLogger.Error(err)
 	}
 	var res int
 	if err = json.Unmarshal(bytes, &res); err != nil {
@@ -224,14 +222,12 @@ func (client *Client) GetCurPathFolder(folderPath string) {
 	reader := bytes.NewReader(d)
 	response, err := http.Post(client.NameNodeAddr+"/getFolders", "application/json", reader)
 	if err != nil {
-		fmt.Println("Client error at Get folder", err.Error())
-		TDFSLogger.Fatal("Client error at Get folder", err)
+		sugarLogger.Error(err)
 	}
 	defer response.Body.Close()
 	bytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		fmt.Println("Client error at read response data", err.Error())
-		TDFSLogger.Fatal("Client error at read response data", err)
+		sugarLogger.Error(err)
 	}
 	var folder []string
 	if err = json.Unmarshal(bytes, &folder); err != nil {
@@ -253,14 +249,12 @@ func (client *Client) GetFolder(fName string) { //fName string
 	reader := bytes.NewReader(d)
 	response, err := http.Post(client.NameNodeAddr+"/getFiles", "application/json", reader)
 	if err != nil {
-		fmt.Println("Client error at Get folder", err.Error())
-		TDFSLogger.Fatal("Client error at Get folder", err)
+		sugarLogger.Error(err)
 	}
 	defer response.Body.Close()
 	bytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		fmt.Println("Client error at read response data", err.Error())
-		TDFSLogger.Fatal("Client error at read response data", err)
+		sugarLogger.Error(err)
 	}
 	var folder []string
 	if err = json.Unmarshal(bytes, &folder); err != nil {
@@ -276,8 +270,7 @@ func (client *Client) DelFile(fName string) {
 	if err == nil {
 		err := os.RemoveAll(client.TempStoreLocation)
 		if err != nil {
-			fmt.Println("XXX Client error at remove tempfiles", err.Error())
-			TDFSLogger.Fatal("XXX Client error: ", err)
+			sugarLogger.Error(err)
 		}
 	}
 	fmt.Println("****************************************")
@@ -285,12 +278,10 @@ func (client *Client) DelFile(fName string) {
 
 	response, err := http.Get(client.NameNodeAddr + "/delfile/" + fName)
 	if err != nil {
-		fmt.Println("XXX Client error at Get file", err.Error())
-		TDFSLogger.Fatal("XXX Client error at Get file", err)
+		sugarLogger.Error(err)
 	}
 	if response.StatusCode == http.StatusNotFound {
-		fmt.Printf("Client file=%v not found\n", fName)
-		TDFSLogger.Printf("Client file=%v not found", fName)
+		sugarLogger.Error(err)
 		return
 	}
 	defer response.Body.Close()
@@ -298,8 +289,7 @@ func (client *Client) DelFile(fName string) {
 	// Read Response Body
 	bytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		fmt.Println("XXX Client error at read response data", err.Error())
-		TDFSLogger.Fatal("XXX Client error at read response data", err)
+		sugarLogger.Error(err)
 	}
 
 	folder := &Folder{}
@@ -333,23 +323,20 @@ func PutChunk(tempChunkPath string, replicationList [REDUNDANCE]ReplicaLocation)
 		writer := multipart.NewWriter(buf)
 		formFile, err := writer.CreateFormFile("putchunk", tempChunkPath)
 		if err != nil {
-			fmt.Println("client error at Create form file", err.Error())
-			TDFSLogger.Fatal("client error: ", err)
+			sugarLogger.Error(err)
 		}
 
 		/** Open source file **/
 		srcFile, err := os.Open(tempChunkPath)
 		if err != nil {
-			fmt.Println("client error at Open source file", err.Error())
-			TDFSLogger.Fatal("client error: ", err)
+			sugarLogger.Error(err)
 		}
 		defer srcFile.Close()
 
 		/** Write to form file **/
 		_, err = io.Copy(formFile, srcFile)
 		if err != nil {
-			fmt.Println("client error at Write to form file", err.Error())
-			TDFSLogger.Fatal("client error: ", err)
+			sugarLogger.Error(err)
 		}
 
 		/** Set Params Before Post **/
@@ -359,8 +346,7 @@ func PutChunk(tempChunkPath string, replicationList [REDUNDANCE]ReplicaLocation)
 		for key, val := range params {
 			err = writer.WriteField(key, val)
 			if err != nil {
-				fmt.Println("client error at Set Params", err.Error())
-				TDFSLogger.Fatal("client error: ", err)
+				sugarLogger.Error(err)
 			}
 		}
 
@@ -371,8 +357,7 @@ func PutChunk(tempChunkPath string, replicationList [REDUNDANCE]ReplicaLocation)
 		res, err := http.Post(replicationList[i].ServerLocation+"/putchunk",
 			contentType, buf) // /"+strconv.Itoa(chunkNum)
 		if err != nil {
-			fmt.Println("client error at Post form file", err.Error())
-			TDFSLogger.Fatal("client error: ", err)
+			sugarLogger.Error(err)
 		}
 		defer res.Body.Close()
 
@@ -381,8 +366,7 @@ func PutChunk(tempChunkPath string, replicationList [REDUNDANCE]ReplicaLocation)
 		/** Read response **/
 		response, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			fmt.Println("XXX NameNode error at Read response", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error: ", err)
+			sugarLogger.Error(err)
 		}
 		fmt.Print("*** DataNoed Response: ", string(response))
 	}
@@ -399,16 +383,14 @@ func (client *Client) GetChunk(file *File, num int) { //ChunkUnit chunkbytes []b
 		url := replicalocation + "/getchunk/" + strconv.Itoa(repilcanum)
 		dataResp, err := http.Get(url)
 		if err != nil {
-			fmt.Println("Client error at Get chunk of ", file.Info, ": ", err)
-			TDFSLogger.Println("Client error: ", err)
+			sugarLogger.Error(err)
 			continue
 		}
 		defer dataResp.Body.Close()
 		/* deal response of Get */
 		chunkbytes, err := ioutil.ReadAll(dataResp.Body)
 		if err != nil {
-			fmt.Println("Client error at ReadAll response of chunk", err.Error())
-			TDFSLogger.Fatal("Client error: ", err)
+			sugarLogger.Error(err)
 		}
 		// fmt.Println("** DataNode Response of Get chunk-",num,": ", string(chunkbytes))
 		/* store chunkdata at nn local */
@@ -418,15 +400,13 @@ func (client *Client) GetChunk(file *File, num int) { //ChunkUnit chunkbytes []b
 		/* send Get chunkhash request */
 		hashRes, err := http.Get(replicalocation + "/getchunkhash/" + strconv.Itoa(repilcanum))
 		if err != nil {
-			fmt.Println("XXX NameNode error at Get chunkhash", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error: ", err)
+			sugarLogger.Error(err)
 		}
 		defer hashRes.Body.Close()
 		/* deal Get chunkhash request */
 		chunkhash, err := ioutil.ReadAll(hashRes.Body)
 		if err != nil {
-			fmt.Println("XXX NameNode error at Read response of chunkhash", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error: ", err)
+			sugarLogger.Error(err)
 		}
 
 		/* check hash */
@@ -464,8 +444,7 @@ func (client *Client) AssembleFile(file File) {
 	//只创建文件夹
 	err := os.MkdirAll(client.StoreLocation+"/"+file.Name, 0777)
 	if err != nil {
-		fmt.Println("XXX Client error at MkdirAll", err.Error())
-		TDFSLogger.Fatal("XXX NameNode error: ", err)
+		sugarLogger.Error(err)
 	}
 
 	d := strings.Split(file.RemotePath, "/")[1:]
@@ -495,22 +474,19 @@ func (client *Client) delChunk(file *File, num int) {
 			c := &http.Client{}
 			req, err := http.NewRequest("DELETE", url, nil)
 			if err != nil {
-				fmt.Println("XXX NameNode error at Del chunk of ", file.Info, ": ", err.Error())
-				TDFSLogger.Fatal("XXX NameNode error: ", err)
+				sugarLogger.Error(err)
 			}
 
 			response, err := c.Do(req)
 			if err != nil {
-				fmt.Println("XXX NameNode error at Del chunk(Do):", err.Error())
-				TDFSLogger.Fatal("XXX NameNode error at Del chunk(Do):", err)
+				sugarLogger.Error(err)
 			}
 			defer response.Body.Close()
 
 			/** Read response **/
 			delRes, err := ioutil.ReadAll(response.Body)
 			if err != nil {
-				fmt.Println("XXX NameNode error at Read response", err.Error())
-				TDFSLogger.Fatal("XXX NameNode error: ", err)
+				sugarLogger.Error(err)
 			}
 			fmt.Println("*** DataNode Response of Delete chunk-", num, "replica-", i, ": ", string(delRes))
 			// return chunkbytes
@@ -532,22 +508,19 @@ func (client *Client) uploadFileByMultipart(fPath string) {
 	writer := multipart.NewWriter(buf)
 	formFile, err := writer.CreateFormFile("putfile", fPath)
 	if err != nil {
-		fmt.Println("XXX Client error at Create form file", err.Error())
-		TDFSLogger.Fatal("XXX Client error at Create form file", err)
+		sugarLogger.Error(err)
 	}
 
 	//打开本地文件
 	srcFile, err := os.Open(fPath)
 	if err != nil {
-		fmt.Println("XXX Client error at Open source file", err.Error())
-		TDFSLogger.Fatal("XXX Client error at Open source file", err)
+		sugarLogger.Error(err)
 	}
 	defer srcFile.Close()
 
 	_, err = io.Copy(formFile, srcFile)
 	if err != nil {
-		fmt.Println("XXX Client error at Write to form file", err.Error())
-		TDFSLogger.Fatal("XXX Client error at Write to form file", err)
+		sugarLogger.Error(err)
 	}
 
 	contentType := writer.FormDataContentType()
@@ -555,15 +528,13 @@ func (client *Client) uploadFileByMultipart(fPath string) {
 	//post发送到http://localhost:11090/putfile
 	res, err := http.Post(client.NameNodeAddr+"/putfile", contentType, buf)
 	if err != nil {
-		fmt.Println("XXX Client error at Post form file", err.Error())
-		TDFSLogger.Fatal("XXX Client error at Post form file", err)
+		sugarLogger.Error(err)
 	}
 	defer res.Body.Close()
 
 	content, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		fmt.Println("XXX Client error at Read response", err.Error())
-		TDFSLogger.Fatal("XXX Client error at Read response", err)
+		sugarLogger.Error(err)
 	}
 
 	fmt.Println("*** NameNode Response: ", string(content))
@@ -577,34 +548,31 @@ func (client *Client) SetConfig(nnaddr string) {
 /* Allocation or AskInfo
  * POST (fileName string, fileBytes int)
  * Wait ReplicaList []ReplicaLocation   */
-func RequestInfo(fileName string, fileBytes int) []ReplicaLocation {
-	/* POST and Wait */
-	replicaLocationList := []ReplicaLocation{
-		{"http://localhost:11091", 3},
-		{"http://localhost:11092", 5},
-	}
-	return replicaLocationList
-}
+// func RequestInfo(fileName string, fileBytes int) []ReplicaLocation {
+// 	/* POST and Wait */
+// 	replicaLocationList := []ReplicaLocation{
+// 		{0, "http://localhost:11091", 3, 0},
+// 		{0, "http://localhost:11092", 5, 0},
+// 	}
+// 	return replicaLocationList
+// }
 
 func uploadFileByBody(client *Client, fPath string) {
 	file, err := os.Open(fPath)
 	if err != nil {
-		fmt.Println("XXX Client Fatal error at Open uploadfile", err.Error())
-		TDFSLogger.Fatal("XXX Client error at Open uploadfile", err)
+		sugarLogger.Error(err)
 	}
 	defer file.Close()
 
 	res, err := http.Post(client.NameNodeAddr+"/putfile", "multipart/form-data", file) //
 	if err != nil {
-		fmt.Println("Client Fatal error at Post", err.Error())
-		TDFSLogger.Fatal("XXX Client error at at Post", err)
+		sugarLogger.Error(err)
 	}
 	defer res.Body.Close()
 
 	content, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		fmt.Println("Client Fatal error at Read response", err.Error())
-		TDFSLogger.Fatal("XXX Client error at Read response", err)
+		sugarLogger.Error(err)
 	}
 	fmt.Println(string(content))
 }
