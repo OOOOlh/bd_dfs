@@ -3,6 +3,7 @@ package hdfs
 import (
 	"encoding/json"
 	"fmt"
+	"go.uber.org/zap"
 	"net/http"
 	"os"
 	"strconv"
@@ -15,15 +16,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (namenode *NameNode) MonitorDN(){
-	defer func () {
-		if x := recover(); x != nil{
+func (namenode *NameNode) MonitorDN() {
+	defer func() {
+		if x := recover(); x != nil {
 			sugarLogger.Errorf("panic when monitor DataNode, err: %v\n", x)
 		}
 	}()
 
-	go func ()  {
-		for{
+	go func() {
+		for {
 			for i := 0; i < len(namenode.DataNodes); i++ {
 				t := time.Now().Second() - namenode.DataNodes[i].LastQuery
 				//如果大于一分钟，就表示该DN出现问题，无法完成上报任务。新建一个节点，将所有数据复制到新节点上
@@ -70,7 +71,7 @@ func (namenode *NameNode) Run() {
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	//校验dn信息
-	router.POST("/heartbeat", func(c *gin.Context)  {
+	router.POST("/heartbeat", func(c *gin.Context) {
 		d, _ := c.GetRawData()
 		datanode := DataNode{}
 		// 反序列化
@@ -86,12 +87,12 @@ func (namenode *NameNode) Run() {
 		localDataNode.LastQuery = time.Now().Second()
 
 		//可用chunk数
-		if(len(datanode.ChunkAvail) != len(localDataNode.ChunkAvail)){
+
+		if len(datanode.ChunkAvail) != len(localDataNode.ChunkAvail) {
 			sugarLogger.Errorf("datanode %s : 可用chunk数目出错\n", datanode.Location)
 		}
 		c.String(http.StatusOK, "")
 	})
-
 
 	router.POST("/put", func(c *gin.Context) {
 		b, _ := c.GetRawData() // 从c.Request.Body读取请求数据
@@ -112,10 +113,11 @@ func (namenode *NameNode) Run() {
 		//遍历所有文件夹，/root/下的所有文件夹
 		folder := &ff.Folder
 		// folder := &namenode.NameSpace.Folder
+
 		// /root或/root/都ok
-		if len(path) == 2 || (len(path) == 3 && path[2] == ""){
+		if len(path) == 2 || (len(path) == 3 && path[2] == "") {
 			n = ff
-		}else{
+		} else {
 			for _, p := range path[2:] {
 				if p == "" {
 					continue
@@ -140,10 +142,9 @@ func (namenode *NameNode) Run() {
 					folder = &n.Folder
 				}
 			}
-		}
-			
 
-		
+		}
+
 		//直接把文件写在当前文件夹下
 		var exist bool
 		var changed bool = true
@@ -233,11 +234,7 @@ func (namenode *NameNode) Run() {
 			// fmt.Println("namenode put json to byte error", err)
 		}
 		res := namenode.NameSpace.ReNameFolderName(dataMap["preFolder"], dataMap["reNameFolder"])
-		if res {
-			context.JSON(http.StatusOK, 1)
-		}
-		context.JSON(http.StatusOK, -1)
-
+		context.JSON(http.StatusOK, res)
 	})
 
 	//get Folders fromr cur path
@@ -294,6 +291,47 @@ func (namenode *NameNode) Run() {
 		res := namenode.NameSpace.CreateFolder(dataMap["curPath"], dataMap["folderName"])
 		context.JSON(http.StatusOK, []bool{res})
 	})
+
+	//获取当前所有文件对应的位置信息, 节点扩容
+	router.GET("/getFilesChunkLocation", func(context *gin.Context) {
+		fileClunksLocation := namenode.NameSpace.GetFilesChunkLocation()
+		context.JSON(http.StatusOK, fileClunksLocation)
+	})
+
+	// 节点扩容之后更新NameNode
+	router.POST("/updataNewNode", func(context *gin.Context) {
+		b, _ := context.GetRawData() // 从c.Request.Body读取请求数据
+		var dataMap map[string][]string
+		if err := json.Unmarshal(b, &dataMap); err != nil {
+			sugarLogger.Errorf("namenode put json to byte error: %s", err)
+			// fmt.Println("namenode put json to byte error", err)
+		}
+		fmt.Printf("newNode dir %s \n", dataMap["newNode"][0])
+		fmt.Printf("newNode port %s \n", dataMap["newNode"][1])
+
+		// 更新namenode保存的可用datanode
+		namenode.DNLocations = append(namenode.DNLocations, "http://localhost:"+dataMap["newNode"][1])
+		port, _ := strconv.Atoi(dataMap["newNode"][1])
+		chunkAvail := []int{}
+		for i := len(dataMap["filePath"]); i < 400; i++ {
+			chunkAvail = append(chunkAvail, i)
+		}
+		newNode := DataNode{
+			"http://localhost:" + dataMap["newNode"][1],
+			port,
+			400,
+			400 - len(dataMap["filePath"]),
+			chunkAvail,
+			0,
+			"nil",
+			[]string{},
+			0,
+			&zap.SugaredLogger{},
+		}
+		namenode.DataNodes = append(namenode.DataNodes, newNode)
+		context.JSON(http.StatusOK, "update success!")
+	})
+
 	router.Run(":" + strconv.Itoa(namenode.Port))
 }
 
@@ -322,24 +360,24 @@ func (namenode *NameNode) AllocateChunk() (rlList [REDUNDANCE]ReplicaLocation) {
 	var wg sync.WaitGroup
 	wg.Add(REDUNDANCE)
 	for i := 0; i < redundance; i++ {
-			max[i] = 0
-			//找到目前空闲块最多的NA
-			for j := 0; j < namenode.DNNumber; j++ {
-				//遍历每一个DN，找到空闲块最多的前redundance个DN
-				if namenode.DataNodes[j].StorageAvail > namenode.DataNodes[max[i]].StorageAvail {
-					max[i] = j
-				}
+		max[i] = 0
+		//找到目前空闲块最多的NA
+		for j := 0; j < namenode.DNNumber; j++ {
+			//遍历每一个DN，找到空闲块最多的前redundance个DN
+			if namenode.DataNodes[j].StorageAvail > namenode.DataNodes[max[i]].StorageAvail {
+				max[i] = j
 			}
+		}
 
-			//ServerLocation是DN地址
-			rlList[i].ServerLocation = namenode.DataNodes[max[i]].Location
-			//ReplicaNum是DN已用的块
-			rlList[i].ReplicaNum = namenode.DataNodes[max[i]].ChunkAvail[0]
-			n := namenode.DataNodes[max[i]].StorageAvail
+		//ServerLocation是DN地址
+		rlList[i].ServerLocation = namenode.DataNodes[max[i]].Location
+		//ReplicaNum是DN已用的块
+		rlList[i].ReplicaNum = namenode.DataNodes[max[i]].ChunkAvail[0]
+		n := namenode.DataNodes[max[i]].StorageAvail
 
-			namenode.DataNodes[max[i]].ChunkAvail[0] = namenode.DataNodes[max[i]].ChunkAvail[n-1]
-			namenode.DataNodes[max[i]].ChunkAvail = namenode.DataNodes[max[i]].ChunkAvail[0 : n-1]
-			namenode.DataNodes[max[i]].StorageAvail--
+		namenode.DataNodes[max[i]].ChunkAvail[0] = namenode.DataNodes[max[i]].ChunkAvail[n-1]
+		namenode.DataNodes[max[i]].ChunkAvail = namenode.DataNodes[max[i]].ChunkAvail[0 : n-1]
+		namenode.DataNodes[max[i]].StorageAvail--
 	}
 	return rlList
 }
@@ -413,7 +451,7 @@ func (namenode *NameNode) GetDNMeta() { // UpdateMeta
 	go namenode.MonitorDN()
 }
 
-func (namenode *NameNode) StartNewDataNode(c []string){
+func (namenode *NameNode) StartNewDataNode(c []string) {
 	var attr = os.ProcAttr{
 		Dir: "../dn",
 		Env: os.Environ(),
@@ -424,7 +462,6 @@ func (namenode *NameNode) StartNewDataNode(c []string){
 		},
 		// Sys: sysproc,
 	}
-
 	process, err := os.StartProcess(c[0], c, &attr)
 	if err == nil {
 		// It is not clear from docs, but Realease actually detaches the process
