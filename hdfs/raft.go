@@ -25,12 +25,14 @@ type Raft struct {
 }
 
 type EditLog struct {
-	Term        int    // 附加日志的领导人任期号
-	Action      string // 文件修改行为，putfile、delfile、putdir、deldir
-	Path        string // 文件路径
-	IsDir       bool   // 是否是文件夹
-	CommitIndex int    // 日志Index
-	File        *File  // put携带的文件及chunk
+	Term        int                 // 附加日志的领导人任期号
+	Action      string              // 文件修改行为，putfile、delfile、putdir、deldir
+	Path        string              // 文件路径
+	IsDir       bool                // 是否是文件夹
+	CommitIndex int                 // 日志Index
+	File        *File               // put携带的文件及chunk
+	DataMap     map[string]string   // rename使用
+	NodeMap     map[string][]string // updataNewNode使用
 }
 
 type NNHeartBeat struct {
@@ -48,7 +50,7 @@ type Vote struct {
 	LeaderCommitIndex int    // 当前领导人已经提交的最大的日志索引值
 }
 
-func (namenode *NameNode) AddEditLog(action, path string, file *File, isDir bool) bool {
+func (namenode *NameNode) AddEditLog(action, path string, file *File, isDir bool, dataMap map[string]string, node map[string][]string) bool {
 	// 先写入leader日志
 	editLog := &EditLog{
 		Term:        namenode.Term,
@@ -57,6 +59,8 @@ func (namenode *NameNode) AddEditLog(action, path string, file *File, isDir bool
 		IsDir:       isDir,
 		CommitIndex: namenode.CommitIndex + 1,
 		File:        file,
+		DataMap:     dataMap,
+		NodeMap:     node,
 	}
 	namenode.TmpLog = append(namenode.TmpLog, editLog)
 	fmt.Printf("receive tmp log=%+v\n", namenode.TmpLog)
@@ -226,5 +230,13 @@ func (namenode *NameNode) ApplyEditLog(log *EditLog) {
 				}
 			}
 		}
+	case "delfile":
+		namenode.DeleteFile(log.Path)
+	case "reFolderName":
+		namenode.NameSpace.ReNameFolderName(log.DataMap["preFolder"], log.DataMap["reNameFolder"])
+	case "mkdir":
+		namenode.NameSpace.CreateFolder(log.DataMap["curPath"], log.DataMap["folderName"])
+	case "updataNewNode":
+		namenode.UpdateNewNode(log.NodeMap)
 	}
 }

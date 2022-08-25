@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+<<<<<<< HEAD
   <component name="ChangeListManager">
     <list default="true" id="79d4f096-7db4-4973-9f2b-c2d11805eb6d" name="Default Changelist" comment="">
       <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
@@ -12,13 +13,28 @@
       <change beforePath="$PROJECT_DIR$/dn2/DN2.go" beforeDir="false" afterPath="$PROJECT_DIR$/dn2/DN2.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/dn3/DN3.go" beforeDir="false" afterPath="$PROJECT_DIR$/dn3/DN3.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
+=======
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="ALL" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="3ab76a46-9055-4847-b47f-7f0d69ab0ae6" name="Changes" comment="节点扩容(部分)">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+>>>>>>> upstream/main
       <change beforePath="$PROJECT_DIR$/hdfs/client.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/client.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hdfs/config.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/config.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hdfs/datanode.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/datanode.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hdfs/namenode.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/namenode.go" afterDir="false" />
+<<<<<<< HEAD
       <change beforePath="$PROJECT_DIR$/hdfs/raft.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/raft.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hdfs/utils.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/utils.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/nn1/NN.go" beforeDir="false" afterPath="$PROJECT_DIR$/nn1/NN.go" afterDir="false" />
+=======
+      <change beforePath="$PROJECT_DIR$/hdfs/utils.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/utils.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hdfs/zaplog.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/zaplog.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/nn/NN.go" beforeDir="false" afterPath="$PROJECT_DIR$/nn/NN.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test.go" beforeDir="false" afterPath="$PROJECT_DIR$/test.go" afterDir="false" />
+>>>>>>> upstream/main
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -36,6 +52,7 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+<<<<<<< HEAD
   <component name="GitSEFilterConfiguration">
     <file-type-list>
       <filtered-out-file-type name="LOCAL_BRANCH" />
@@ -48,10 +65,28 @@
     <option name="indexEntireGoPath" value="false" />
   </component>
   <component name="ProjectId" id="2DcpsL94ZHfM50dp6pfQw26OZzK" />
+=======
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/client_main/Client.go" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/dn1/DN1.go" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/dn2/DN2.go" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/hdfs/TestConfig_test.go" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/hdfs/client.go" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/hdfs/config.go" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/hdfs/namenode.go" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/nn/NN.go" root0="FORCE_HIGHLIGHTING" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectId" id="2DhUvij71O7IxTJ2iAkqzXEZLAd" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+>>>>>>> upstream/main
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
+<<<<<<< HEAD
   <component name="PropertiesComponent">
     <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
     <property name="DefaultGoTemplateProperty" value="Go File" />
@@ -70,6 +105,38 @@
       <recent name="$PROJECT_DIR$/nn2" />
       <recent name="$PROJECT_DIR$" />
     </key>
+=======
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.format.on.save.advertiser.fired&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.migrated.go.modules.settings&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.modules.go.list.on.any.changes.was.set&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.watchers.conflict.with.on.save.actions.check.performed&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;go.import.settings.migrated&quot;: &quot;true&quot;,
+    &quot;go.sdk.automatically.set&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/PointWXF&quot;
+  }
+}</component>
+  <component name="RunManager">
+    <configuration name="go build test.go" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
+      <module name="bd_hdfs_mine" />
+      <working_directory value="$PROJECT_DIR$" />
+      <kind value="FILE" />
+      <package value="hdfs" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$/test.go" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Go Build.go build test.go" />
+      </list>
+    </recent_temporary>
+>>>>>>> upstream/main
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TypeScriptGeneratedFilesManager">
@@ -86,6 +153,14 @@
       </map>
     </option>
   </component>
+<<<<<<< HEAD
+=======
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="测试了接口" />
+    <MESSAGE value="节点扩容(部分)" />
+    <option name="LAST_COMMIT_MESSAGE" value="节点扩容(部分)" />
+  </component>
+>>>>>>> upstream/main
   <component name="VgoProject">
     <integration-enabled>true</integration-enabled>
   </component>
