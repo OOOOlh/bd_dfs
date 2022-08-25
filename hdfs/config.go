@@ -3,6 +3,7 @@ package hdfs
 import (
 	"fmt"
 	"strings"
+	"time"
 )
 
 /** Configurations for Pseudo Distributed Mode **/
@@ -10,7 +11,7 @@ import (
 /** Configurations for ALL Mode **/
 const SPLIT_UNIT int = 1000
 const REDUNDANCE int = 2
-
+const HeartBeatInterval = 3 * time.Second
 // const CHUNKTOTAL int = 400
 
 // Chunk 一律表示逻辑概念，表示文件块
@@ -165,6 +166,7 @@ type Client struct {
 	StoreLocation     string
 	TempStoreLocation string
 	NameNodeAddr      string
+	AllNameNodeAddr   []string
 	Mode              int
 }
 type Config struct {
@@ -177,6 +179,8 @@ type NameNode struct {
 	NameSpace *Folder
 	Location  string
 	Port      int
+	//NameNode位置
+	NNLocations []string
 	//DataNode数量
 	DNNumber int
 	//DataNode位置
@@ -187,6 +191,7 @@ type NameNode struct {
 	// 冗余块
 	REDUNDANCE int
 	Map        map[string]int
+	Raft
 }
 type DataNode struct {
 	Location     string `json:"Location"` // http://IP:Port/

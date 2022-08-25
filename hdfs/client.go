@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 )
 
 func (client *Client) PutFile(localPath string, remotePath string) {
@@ -504,8 +506,19 @@ func (client *Client) uploadFileByMultipart(fPath string) {
 }
 
 //http://localhost:11090
-func (client *Client) SetConfig(nnaddr string) {
-	client.NameNodeAddr = nnaddr
+func (client *Client) SetConfig(nnaddr ...string) {
+	client.AllNameNodeAddr = nnaddr
+	rand.Seed(time.Now().Unix())
+	addr := nnaddr[rand.Intn(len(nnaddr))]
+	res, err := http.Get(addr + "/leader")
+	if err != nil {
+		fmt.Println("get leader error", err.Error())
+		TDFSLogger.Fatal("get leader error", err)
+	}
+	defer res.Body.Close()
+	body, _ := ioutil.ReadAll(res.Body)
+	fmt.Println(string(body))
+	client.NameNodeAddr = string(body)
 }
 
 /* Allocation or AskInfo

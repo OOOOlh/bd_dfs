@@ -3,12 +3,12 @@ package hdfs
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
 	"strconv"
 	"strings"
-
-	"github.com/gin-gonic/gin"
+	"time"
 )
 
 /*
@@ -21,6 +21,118 @@ func (namenode *NameNode) Run() {
 	// register the `/metrics` route.
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
+	router.GET("/leader", func(c *gin.Context) {
+		c.String(http.StatusOK, namenode.LeaderLocation)
+	})
+
+	router.POST("/nn_heartbeat", func(c *gin.Context) {
+		b, _ := c.GetRawData() // 从c.Request.Body读取请求数据
+		if len(b) == 0 {
+			fmt.Println("empty data")
+			c.JSON(http.StatusBadRequest, nil)
+			return
+		}
+		heartBeat := &NNHeartBeat{}
+		if err := json.Unmarshal(b, heartBeat); err != nil {
+			fmt.Println("unmarshal heartbeat data error")
+			c.JSON(http.StatusBadRequest, nil)
+			return
+		}
+		fmt.Printf("receive heartbeat=%+v\n", heartBeat)
+		fmt.Printf("editLog=%+v\n", heartBeat.EditLog)
+		if heartBeat.Term < namenode.Term {
+			fmt.Println("term is too low")
+			c.JSON(http.StatusBadRequest, nil)
+			return
+		} else if heartBeat.Term > namenode.Term {
+			fmt.Println("bigger term")
+			namenode.Term = heartBeat.Term
+			namenode.IsLeader = false
+			namenode.LeaderLocation = heartBeat.LeaderLocation
+		}
+		if !namenode.IsLeader {
+			fmt.Println("reset ticker")
+			namenode.HeartBeatTicker.Reset(3 * HeartBeatInterval)
+			namenode.LeaderLocation = heartBeat.LeaderLocation
+			namenode.Term = heartBeat.Term
+		}
+		if len(heartBeat.EditLog) == 0 {
+			// 不带editlog的心跳同步
+			fmt.Println("without edit log")
+			fmt.Printf("leader commit=%+v follower commit=%+v\n", heartBeat.LeaderCommitIndex, namenode.CommitIndex)
+			if heartBeat.LeaderCommitIndex == namenode.CommitIndex {
+				c.JSON(http.StatusOK, namenode.CommitIndex)
+				return
+			}
+			if heartBeat.LeaderCommitIndex > namenode.CommitIndex {
+				for _, log := range namenode.TmpLog[namenode.CommitIndex:] {
+					// TODO: 应用变动到namenode文件树
+					fmt.Println("change namenode file tree")
+					namenode.CommitIndex = log.CommitIndex
+				}
+				c.JSON(http.StatusOK, namenode.CommitIndex)
+				return
+			}
+			c.JSON(http.StatusBadRequest, namenode.CommitIndex)
+			return
+		} else {
+			fmt.Println("has edit log")
+			fmt.Printf("pre log index=%+v tmpLog=%+v\n", heartBeat.PreLogIndex, namenode.TmpLog)
+			if heartBeat.PreLogIndex > len(namenode.TmpLog) {
+				fmt.Println("bigger pre log index")
+				c.JSON(http.StatusNotAcceptable, namenode.CommitIndex)
+				return
+			}
+			if heartBeat.PreLogIndex > 0 && heartBeat.PreLogTerm != namenode.TmpLog[heartBeat.PreLogIndex-1].Term {
+				c.JSON(http.StatusBadRequest, namenode.CommitIndex)
+				return
+			}
+			for _, log := range heartBeat.EditLog {
+				if log.CommitIndex > len(namenode.TmpLog) {
+					namenode.TmpLog = append(namenode.TmpLog, log)
+				} else {
+					if namenode.TmpLog[log.CommitIndex-1].Term != log.Term ||
+						namenode.TmpLog[log.CommitIndex-1].CommitIndex != log.CommitIndex {
+						namenode.TmpLog[log.CommitIndex-1] = log
+					}
+				}
+				if log.CommitIndex <= heartBeat.LeaderCommitIndex &&
+					log.CommitIndex > namenode.CommitIndex {
+					// TODO: 应用到文件树
+					fmt.Println("change namenode file tree")
+					namenode.CommitIndex = log.CommitIndex
+				}
+			}
+			logStr, _ := json.Marshal(namenode.TmpLog)
+			fmt.Printf("tmpLog=%+v commitIndex=%+v\n", string(logStr), namenode.CommitIndex)
+			c.JSON(http.StatusOK, namenode.CommitIndex)
+			return
+		}
+	})
+
+	router.POST("/vote", func(c *gin.Context) {
+		b, _ := c.GetRawData() // 从c.Request.Body读取请求数据
+		vote := &Vote{}
+		// 反序列化
+		if len(b) == 0 {
+			fmt.Println("put request body为空")
+		}
+		if err := json.Unmarshal(b, vote); err != nil {
+			fmt.Println("namenode put json to byte error", err)
+		}
+		fmt.Printf("receive vote=%+v\n time=%+v", vote, time.Now())
+		if vote.Term <= namenode.Term {
+			c.JSON(http.StatusBadRequest, nil)
+			return
+		}
+		if vote.LeaderCommitIndex < namenode.CommitIndex {
+			c.JSON(http.StatusBadRequest, nil)
+			return
+		}
+		namenode.Term = vote.Term
+		c.JSON(http.StatusOK, nil)
+	})
+
 	router.POST("/put", func(c *gin.Context) {
 		b, _ := c.GetRawData() // 从c.Request.Body读取请求数据
 		file := &File{}
@@ -31,7 +143,12 @@ func (namenode *NameNode) Run() {
 		if err := json.Unmarshal(b, file); err != nil {
 			fmt.Println("namenode put json to byte error", err)
 		}
-
+		success := namenode.AddEditLog("put", file.RemotePath+file.Name, false)
+		if !success {
+			c.JSON(http.StatusBadRequest, nil)
+			return
+		}
+		fmt.Printf("add log success=%v\n", success)
 		// 去除最开始的斜杠
 		path := strings.Split(file.RemotePath, "/")[1:]
 
@@ -235,7 +352,7 @@ func (namenode *NameNode) AllocateChunk() (rlList [REDUNDANCE]ReplicaLocation) {
 	return rlList
 }
 
-func (namenode *NameNode) SetConfig(location string, dnnumber int, redundance int, dnlocations []string) {
+func (namenode *NameNode) SetConfig(location string, dnnumber int, redundance int, dnlocations []string, nnlocations []string) {
 	temp := strings.Split(location, ":")
 	res, err := strconv.Atoi(temp[2])
 	if err != nil {
@@ -249,9 +366,13 @@ func (namenode *NameNode) SetConfig(location string, dnnumber int, redundance in
 	}
 	namenode.Port = res
 	namenode.Location = location
+	namenode.NNLocations = nnlocations
 	namenode.DNNumber = dnnumber
 	namenode.DNLocations = dnlocations
 	namenode.REDUNDANCE = redundance
+	namenode.TmpLog = make([]*EditLog, 0)
+	namenode.MatchIndex = make(map[string]int)
+	namenode.HeartBeatTicker = time.NewTicker(HeartBeatInterval)
 	fmt.Println("************************************************************")
 	fmt.Println("************************************************************")
 	fmt.Printf("*** Successfully Set Config data for the namenode\n")
