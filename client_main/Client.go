@@ -82,7 +82,7 @@ func main() {
 	}
 	// 获取指定目录下的文件列表(测试过)
 	if *filesNameOfGet != "unknow" {
-		client.GetFolder(*filesNameOfGet)
+		client.GetFiles(*filesNameOfGet)
 		fmt.Println(" -GetFiles for ", *filesNameOfGet)
 	}
 

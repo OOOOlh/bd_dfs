@@ -3,6 +3,7 @@ package hdfs
 import (
 	"encoding/json"
 	"fmt"
+	"go.uber.org/zap"
 	"net/http"
 	"os"
 	"strconv"
@@ -233,11 +234,7 @@ func (namenode *NameNode) Run() {
 			// fmt.Println("namenode put json to byte error", err)
 		}
 		res := namenode.NameSpace.ReNameFolderName(dataMap["preFolder"], dataMap["reNameFolder"])
-		if res {
-			context.JSON(http.StatusOK, 1)
-		}
-		context.JSON(http.StatusOK, -1)
-
+		context.JSON(http.StatusOK, res)
 	})
 
 	//get Folders fromr cur path
@@ -295,11 +292,44 @@ func (namenode *NameNode) Run() {
 		context.JSON(http.StatusOK, []bool{res})
 	})
 
-	//获取当前所有文件对应的位置信息
+	//获取当前所有文件对应的位置信息, 节点扩容
 	router.GET("/getFilesChunkLocation", func(context *gin.Context) {
 		fileClunksLocation := namenode.NameSpace.GetFilesChunkLocation()
-		//addrChunks :=
 		context.JSON(http.StatusOK, fileClunksLocation)
+	})
+
+	// 节点扩容之后更新NameNode
+	router.POST("/updataNewNode", func(context *gin.Context) {
+		b, _ := context.GetRawData() // 从c.Request.Body读取请求数据
+		var dataMap map[string][]string
+		if err := json.Unmarshal(b, &dataMap); err != nil {
+			sugarLogger.Errorf("namenode put json to byte error: %s", err)
+			// fmt.Println("namenode put json to byte error", err)
+		}
+		fmt.Printf("newNode dir %s \n", dataMap["newNode"][0])
+		fmt.Printf("newNode port %s \n", dataMap["newNode"][1])
+
+		// 更新namenode保存的可用datanode
+		namenode.DNLocations = append(namenode.DNLocations, "http://localhost:"+dataMap["newNode"][1])
+		port, _ := strconv.Atoi(dataMap["newNode"][1])
+		chunkAvail := []int{}
+		for i := len(dataMap["filePath"]); i < 400; i++ {
+			chunkAvail = append(chunkAvail, i)
+		}
+		newNode := DataNode{
+			"http://localhost:" + dataMap["newNode"][1],
+			port,
+			400,
+			400 - len(dataMap["filePath"]),
+			chunkAvail,
+			0,
+			"nil",
+			[]string{},
+			0,
+			&zap.SugaredLogger{},
+		}
+		namenode.DataNodes = append(namenode.DataNodes, newNode)
+		context.JSON(http.StatusOK, "update success!")
 	})
 
 	router.Run(":" + strconv.Itoa(namenode.Port))
