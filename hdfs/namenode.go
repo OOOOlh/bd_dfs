@@ -466,14 +466,12 @@ func (namenode *NameNode) DelChunk(file File, num int) {
 	var wg sync.WaitGroup
 	wg.Add(REDUNDANCE)
 	for i := 0; i < REDUNDANCE; i++ {
-		go func(i int) {
-			chunklocation := file.Chunks[num].ReplicaLocationList[i].ServerLocation
-			chunknum := file.Chunks[num].ReplicaLocationList[i].ReplicaNum
-			index := namenode.Map[chunklocation]
-			namenode.DataNodes[index].ChunkAvail = append(namenode.DataNodes[index].ChunkAvail, chunknum)
-			namenode.DataNodes[index].StorageAvail++
-			wg.Done()
-		}(i)
+		chunklocation := file.Chunks[num].ReplicaLocationList[i].ServerLocation
+		chunknum := file.Chunks[num].ReplicaLocationList[i].ReplicaNum
+		index := namenode.Map[chunklocation]
+		namenode.DataNodes[index].ChunkAvail = append(namenode.DataNodes[index].ChunkAvail, chunknum)
+		namenode.DataNodes[index].StorageAvail++
+		wg.Done()
 	}
 	wg.Wait()
 }
