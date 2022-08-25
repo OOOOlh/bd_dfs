@@ -262,9 +262,24 @@ func (client *Client) ExpandNode(nodeDir, nodePort string) {
 		preReplicaNum := strconv.Itoa(fileChunk.Chunks[0].ReplicaLocationList[0].ReplicaNum)
 		transferChunk[fileChunk.Path] = []string{preLocation, preReplicaNum}
 	}
-	fmt.Println(transferChunk)
+	for key, value := range transferChunk {
+		fmt.Printf("need transfer file %s block %s,%s to new Node!", key, value[0], value[1])
+	}
 	// 获取移动节点的数据
-
+	for _, value := range transferChunk {
+		fmt.Println(value[0] + "/getchunk/:" + value[1])
+		response2, err2 := http.Get(value[0] + "/getchunk/" + value[1])
+		if err2 != nil {
+			fmt.Println("Client error get FilesChunkLocation !")
+		}
+		fmt.Println(response2)
+		bytes2, err3 := ioutil.ReadAll(response2.Body)
+		if err3 != nil {
+			fmt.Println("Client error at read response data")
+		}
+		fmt.Println(bytes2)
+		defer response.Body.Close()
+	}
 	// 告诉nameNode更新目录树
 
 	fmt.Println(FileChunks)
