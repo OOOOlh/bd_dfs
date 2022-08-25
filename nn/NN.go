@@ -4,6 +4,7 @@ import "hdfs/hdfs"
 
 const NN_DIR string = "./namenode"
 const NN_LOCATION string = "http://localhost:11090"
+
 const rEDUNDANCE int = 2
 const EXEC string = "dn.exe"
 
@@ -18,7 +19,6 @@ func main() {
 	nn.StandByDataNode = standBy
 	// dnlocations := []string{"http://localhost:11091", "http://localhost:11092", "http://localhost:11093"}
 	//nn.Reset()
-	
 	c := [][]string{
 		{EXEC, "-dir", "dn1", "-port", "11091"},
 		{EXEC, "-dir", "dn2", "-port", "11092"},
@@ -27,8 +27,8 @@ func main() {
 
 	var dnlocations []string
 
-	for i := 0; i < len(c); i++{
-		dnlocations = append(dnlocations, "http://localhost:" + c[i][4])
+	for i := 0; i < len(c); i++ {
+		dnlocations = append(dnlocations, "http://localhost:"+c[i][4])
 		nn.StartNewDataNode(c[i])
 	}
 

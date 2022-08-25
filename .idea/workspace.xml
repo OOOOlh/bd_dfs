@@ -3,27 +3,17 @@
   <component name="AutoImportSettings">
     <option name="autoReloadType" value="ALL" />
   </component>
-  <component name="BranchesTreeState">
-    <expand>
-      <path>
-        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
-        <item name="LOCAL_ROOT" type="e8cecc67:BranchNodeDescriptor" />
-      </path>
-      <path>
-        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
-        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
-      </path>
-      <path>
-        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
-        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
-        <item name="GROUP_NODE:origin" type="e8cecc67:BranchNodeDescriptor" />
-      </path>
-    </expand>
-    <select />
-  </component>
   <component name="ChangeListManager">
-    <list default="true" id="94c22a5c-56f4-4441-9567-9a32993edb25" name="Default Changelist" comment="增加了根据路径获取目录列表和修改目录名的接口">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    <list default="true" id="3ab76a46-9055-4847-b47f-7f0d69ab0ae6" name="Changes" comment="节点扩容(部分)">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hdfs/client.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/client.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hdfs/config.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/config.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hdfs/datanode.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/datanode.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hdfs/namenode.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/namenode.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hdfs/utils.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/utils.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hdfs/zaplog.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/zaplog.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/nn/NN.go" beforeDir="false" afterPath="$PROJECT_DIR$/nn/NN.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test.go" beforeDir="false" afterPath="$PROJECT_DIR$/test.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -33,9 +23,6 @@
   <component name="GOROOT" url="file://D:/StudyApplication/go1.18" />
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
-  </component>
-  <component name="GoLibraries">
-    <option name="indexEntireGoPath" value="false" />
   </component>
   <component name="HighlightingSettingsPerFile">
     <setting file="file://$PROJECT_DIR$/client_main/Client.go" root0="FORCE_HIGHLIGHTING" />
@@ -50,64 +37,40 @@
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
-  <component name="ProjectId" id="2DU1qk1dZaOyla4IUL51TFUcBMo" />
+  <component name="ProjectId" id="2DhUvij71O7IxTJ2iAkqzXEZLAd" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.go.format.on.save.advertiser.fired&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.go.migrated.go.modules.settings&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.go.modules.go.list.on.any.changes.was.set&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.go.watchers.conflict.with.on.save.actions.check.performed&quot;: &quot;true&quot;,
     &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;configurable..is.expanded&quot;: &quot;false&quot;,
-    &quot;configurable.GoLibrariesConfigurable.is.expanded&quot;: &quot;true&quot;,
     &quot;go.import.settings.migrated&quot;: &quot;true&quot;,
     &quot;go.sdk.automatically.set&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/PointWXF&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/PointWXF&quot;
   }
 }</component>
-  <component name="RecentsManager">
-    <key name="CopyFile.RECENT_KEYS">
-      <recent name="C:\Users\PointWXF\Desktop\bd_hdfs_mine\localFiles" />
-      <recent name="C:\Users\PointWXF\Desktop\bd_hdfs_mine" />
-    </key>
-  </component>
-  <component name="RunManager" selected="Go Build.go build hdfs/dn1">
-    <configuration name="go build DN2.go" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
+  <component name="RunManager">
+    <configuration name="go build test.go" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
       <module name="bd_hdfs_mine" />
       <working_directory value="$PROJECT_DIR$" />
       <kind value="FILE" />
       <package value="hdfs" />
       <directory value="$PROJECT_DIR$" />
-      <filePath value="$PROJECT_DIR$/dn2/DN2.go" />
-      <method v="2" />
-    </configuration>
-    <configuration name="go build NN.go" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
-      <module name="bd_hdfs_mine" />
-      <working_directory value="$PROJECT_DIR$" />
-      <kind value="FILE" />
-      <directory value="$PROJECT_DIR$" />
-      <filePath value="$PROJECT_DIR$/nn/NN.go" />
-      <method v="2" />
-    </configuration>
-    <configuration name="go build hdfs/dn1" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
-      <module name="bd_hdfs_mine" />
-      <working_directory value="$PROJECT_DIR$" />
-      <kind value="PACKAGE" />
-      <package value="hdfs/dn1" />
-      <directory value="$PROJECT_DIR$" />
-      <filePath value="$PROJECT_DIR$/dn1/DN1.go" />
+      <filePath value="$PROJECT_DIR$/test.go" />
       <method v="2" />
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Go Build.go build hdfs/dn1" />
-        <item itemvalue="Go Build.go build NN.go" />
+        <item itemvalue="Go Build.go build test.go" />
       </list>
     </recent_temporary>
   </component>
@@ -127,9 +90,9 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Finish create Folder port" />
-    <MESSAGE value="增加了根据路径获取目录列表和修改目录名的接口" />
-    <option name="LAST_COMMIT_MESSAGE" value="增加了根据路径获取目录列表和修改目录名的接口" />
+    <MESSAGE value="测试了接口" />
+    <MESSAGE value="节点扩容(部分)" />
+    <option name="LAST_COMMIT_MESSAGE" value="节点扩容(部分)" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>

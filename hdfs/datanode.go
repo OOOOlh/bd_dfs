@@ -25,6 +25,22 @@ func (datanode *DataNode) Run() {
 	// register the `/metrics` route.
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
+	router.POST("/putChunkBybytes", func(context *gin.Context) {
+		b, _ := context.GetRawData() // 从c.Request.Body读取请求数据
+		var dataMap map[string][]byte
+		if err := json.Unmarshal(b, &dataMap); err != nil {
+			sugarLogger.Errorf("namenode put json to byte error: %s", err)
+		}
+		chunkId := string(dataMap["chunkId"])
+		data := dataMap["data"]
+		chunkout, err := os.Create(datanode.DATANODE_DIR + "/chunk/chunk-" + chunkId)
+		if err != nil {
+			fmt.Println("create file success!")
+		}
+		chunkout.Write(data)
+		defer chunkout.Close()
+		context.String(http.StatusOK, "putChunkBybytes SUCCESS!")
+	})
 	router.POST("/putchunk", func(c *gin.Context) {
 		// c.Request.ParseMultipartForm(32 << 20) //上传最大文件限制32M
 		// chunkNum := c.Request.Form.Get("chunkNum") //通过这种方式在gin中也可以读取到POST的参数，ginb
@@ -70,7 +86,7 @@ func (datanode *DataNode) Run() {
 		datanode.ChunkAvail = datanode.ChunkAvail[0 : n-1]
 		datanode.StorageAvail--
 
-		fmt.Printf("每个chunk大小:%d Byte, 剩余可用chunk:%d, 总chunk:%d\n",SPLIT_UNIT, datanode.StorageAvail, datanode.StorageTotal)
+		fmt.Printf("每个chunk大小:%d Byte, 剩余可用chunk:%d, 总chunk:%d\n", SPLIT_UNIT, datanode.StorageAvail, datanode.StorageTotal)
 
 		c.String(http.StatusCreated, "PutChunk SUCCESS\n")
 	})
@@ -257,10 +273,10 @@ func (datanode *DataNode) Run() {
 }
 
 //心跳上报
-func (datanode *DataNode) SendHeartbeat(){
-	defer func () {
-		if x := recover(); x != nil{
-			datanode.ZapLogger.Fatalf("panic when DataNode %s send heartbeat to namenode, err: %v", datanode.Location, x) 
+func (datanode *DataNode) SendHeartbeat() {
+	defer func() {
+		if x := recover(); x != nil {
+			datanode.ZapLogger.Fatalf("panic when DataNode %s send heartbeat to namenode, err: %v", datanode.Location, x)
 		}
 	}()
 
@@ -282,6 +298,7 @@ func (datanode *DataNode) SendHeartbeat(){
 			}
 			defer resp.Body.Close()
 			datanode.ZapLogger.Infof("datanode %s 上传心跳完毕,收到回复%s", datanode.Location, resp.Status)
+	
 		}
 	}
 
@@ -338,7 +355,7 @@ func (datanode *DataNode) Reset() {
 	datanode.reset(datanode.DATANODE_DIR + "/achunkhashs")
 }
 
-func (datanode *DataNode) reset(dir string){
+func (datanode *DataNode) reset(dir string) {
 	exist, err := PathExists(dir)
 	if err != nil {
 		// fmt.Println("XXX DataNode error at Get Dir chunkhashs", err.Error())

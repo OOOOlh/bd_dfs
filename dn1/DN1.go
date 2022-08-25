@@ -9,7 +9,7 @@ import "hdfs/hdfs"
 // "runtime"
 // "sync"
 const DN1_DIR string = "./datanode"
-const DN1_LOCATION string = "11091"
+const DN1_LOCATION string = "11096"
 const DN1_CAPACITY int = 400
 
 func main() {
