@@ -2,9 +2,9 @@ package hdfs
 
 import (
 	"fmt"
-	"log"
 	"strings"
-	"time"
+
+	"go.uber.org/zap"
 )
 
 /** Configurations for Pseudo Distributed Mode **/
@@ -267,10 +267,12 @@ type DataNode struct {
 	ChunkAvail   []int  `json:"ChunkAvail"` //空闲块表
 	LastEdit     int64  `json:"LastEdit"`
 	DATANODE_DIR string `json:"DATANODE_DIR"`
-	Ticker       *time.Ticker
-	NNLocation   []string
-	LastQuery    int
-	DNLogger     *log.Logger
+
+	// Ticker *time.Ticker
+	NNLocation []string
+	LastQuery  int
+	// DNLogger *log.Logger
+	ZapLogger *zap.SugaredLogger
 }
 type DNMeta struct {
 	StorageTotal int `json:"StorageTotal"`

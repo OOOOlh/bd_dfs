@@ -18,20 +18,17 @@ import (
 func (namenode *NameNode) MonitorDN() {
 	defer func() {
 		if x := recover(); x != nil {
-			TDFSLogger.Fatalf("panic when monitor DataNode, err: %v\n", x)
+			sugarLogger.Errorf("panic when monitor DataNode, err: %v\n", x)
 		}
 	}()
 
-	time.Sleep(4 * time.Second)
 	go func() {
 		for {
 			for i := 0; i < len(namenode.DataNodes); i++ {
 				t := time.Now().Second() - namenode.DataNodes[i].LastQuery
 				//如果大于一分钟，就表示该DN出现问题，无法完成上报任务。新建一个节点，将所有数据复制到新节点上
-				if t > 60 {
-					fmt.Printf("t为%d, 另一个为%d\n", t, namenode.DataNodes[i].LastQuery)
-					fmt.Println("namenode的备用dn数为：", len(namenode.StandByDataNode))
-					TDFSLogger.Printf("%s节点超过规定时间间隔%d，开始建立新DataNode\n", namenode.DataNodes[i].Location, t)
+				if t > 80 {
+					sugarLogger.Warnf("%s节点超过规定时间间隔:%d，开始建立新DataNode\n", namenode.DataNodes[i].Location, t)
 					s := namenode.StandByDataNode[0]
 					//启动新的datanode节点
 					namenode.StartNewDataNode(s)
@@ -39,7 +36,7 @@ func (namenode *NameNode) MonitorDN() {
 					//向namenode中添加新的datanode节点
 					//向新的dn发送元数据查询请求，返回的元数据保存
 					newLocation := "http://localhost:" + s[4]
-					TDFSLogger.Printf("新的DataNode节点地址为%s\n", newLocation)
+					sugarLogger.Infof("新的DataNode节点地址为%s\n", newLocation)
 					namenode.Map[newLocation] = i
 					response, err := http.Get(newLocation + "/getmeta")
 					if err != nil {
@@ -59,7 +56,6 @@ func (namenode *NameNode) MonitorDN() {
 					namenode.DataNodes = append(namenode.DataNodes, dn)
 					//用后即删
 					namenode.StandByDataNode = namenode.StandByDataNode[1:]
-
 				}
 			}
 		}
@@ -67,7 +63,7 @@ func (namenode *NameNode) MonitorDN() {
 }
 
 func (namenode *NameNode) Run() {
-	namenode.MonitorDN()
+	// namenode.MonitorDN()
 	router := gin.Default()
 	router.Use(MwPrometheusHttp)
 	// register the `/metrics` route.
@@ -84,15 +80,17 @@ func (namenode *NameNode) Run() {
 		if err := json.Unmarshal(d, &datanode); err != nil {
 			fmt.Println("namenode put json to byte error", err)
 		}
+		sugarLogger.Infof("收到来自datanode:%s的心跳", datanode.Location)
 
 		localDataNode := &namenode.DataNodes[namenode.Map[datanode.Location]]
 		localDataNode.LastQuery = time.Now().Second()
 
 		//可用chunk数
-		if len(datanode.ChunkAvail) != len(localDataNode.ChunkAvail) {
-			TDFSLogger.Fatalf("datanode %s : 可用chunk数目出错\n", datanode.Location)
-		}
 
+		if len(datanode.ChunkAvail) != len(localDataNode.ChunkAvail) {
+			sugarLogger.Errorf("datanode %s : 可用chunk数目出错\n", datanode.Location)
+		}
+		c.String(http.StatusOK, "")
 	})
 
 	router.POST("/put", func(c *gin.Context) {
@@ -100,10 +98,10 @@ func (namenode *NameNode) Run() {
 		file := &File{}
 		// 反序列化
 		if len(b) == 0 {
-			fmt.Println("put request body为空")
+			sugarLogger.Warn("client to namenode put request body为空")
 		}
 		if err := json.Unmarshal(b, file); err != nil {
-			fmt.Println("namenode put json to byte error", err)
+			sugarLogger.Errorf("namenode put json to byte error: %s", err)
 		}
 
 		path := strings.Split(file.RemotePath, "/")
@@ -114,8 +112,12 @@ func (namenode *NameNode) Run() {
 		//遍历所有文件夹，/root/下的所有文件夹
 		folder := &ff.Folder
 		// folder := &namenode.NameSpace.Folder
-		if len(path) != 2 {
-			for _, p := range path[1:] {
+
+		// /root或/root/都ok
+		if len(path) == 2 || (len(path) == 3 && path[2] == "") {
+			n = ff
+		} else {
+			for _, p := range path[2:] {
 				if p == "" {
 					continue
 				}
@@ -139,8 +141,7 @@ func (namenode *NameNode) Run() {
 					folder = &n.Folder
 				}
 			}
-		} else {
-			n = ff
+
 		}
 
 		//直接把文件写在当前文件夹下
@@ -155,7 +156,7 @@ func (namenode *NameNode) Run() {
 				//校验文件是否改变
 				if f.Info == file.Info {
 					//如果没改变，client就不用向datanode改变信息
-					TDFSLogger.Println("namenode: file exists and not changed")
+					sugarLogger.Info("namenode: file exists and not changed")
 					changed = false
 				}
 				break
@@ -182,7 +183,7 @@ func (namenode *NameNode) Run() {
 		if !exist {
 			n.Files = append(n.Files, file)
 		} else if changed {
-			TDFSLogger.Println("namenode: file exists and changed")
+			sugarLogger.Info("namenode: file exists and changed")
 			f = file
 		}
 		if !changed {
@@ -197,8 +198,9 @@ func (namenode *NameNode) Run() {
 		node := namenode.NameSpace
 		file, err := node.GetFileNode(filename)
 		if err != nil {
-			TDFSLogger.Printf("get file=%v error=%v\n", filename, err.Error())
-			fmt.Printf("get file=%v error=%v\n", filename, err.Error())
+			sugarLogger.Errorf("get file: %s error: %v\n", filename, err.Error())
+			// TDFSLogger.Printf("get file:%v error=%v\n", filename, err.Error())
+			// fmt.Printf("get file=%v error=%v\n", filename, err.Error())
 			c.JSON(http.StatusNotFound, err.Error())
 			return
 		}
@@ -227,7 +229,8 @@ func (namenode *NameNode) Run() {
 		b, _ := context.GetRawData() // 从c.Request.Body读取请求数据
 		var dataMap map[string]string
 		if err := json.Unmarshal(b, &dataMap); err != nil {
-			fmt.Println("namenode put json to byte error", err)
+			sugarLogger.Errorf("namenode put json to byte error: %s", err)
+			// fmt.Println("namenode put json to byte error", err)
 		}
 		res := namenode.NameSpace.ReNameFolderName(dataMap["preFolder"], dataMap["reNameFolder"])
 		if res {
@@ -242,7 +245,8 @@ func (namenode *NameNode) Run() {
 		b, _ := context.GetRawData() // 从c.Request.Body读取请求数据
 		var dataMap map[string]string
 		if err := json.Unmarshal(b, &dataMap); err != nil {
-			fmt.Println("namenode put json to byte error", err)
+			sugarLogger.Errorf("namenode put json to byte error: %s", err)
+			// fmt.Println("namenode put json to byte error", err)
 		}
 		_, folders := namenode.NameSpace.GetFileList(dataMap["fname"])
 		var filenames []string
@@ -256,7 +260,8 @@ func (namenode *NameNode) Run() {
 		b, _ := context.GetRawData() // 从c.Request.Body读取请求数据
 		var dataMap map[string]string
 		if err := json.Unmarshal(b, &dataMap); err != nil {
-			fmt.Println("namenode put json to byte error", err)
+			sugarLogger.Errorf("namenode put json to byte error: %s", err)
+			// fmt.Println("namenode put json to byte error", err)
 		}
 		files, _ := namenode.NameSpace.GetFileList(dataMap["fname"])
 		var filenames []string
@@ -283,7 +288,8 @@ func (namenode *NameNode) Run() {
 		b, _ := context.GetRawData() // 从c.Request.Body读取请求数据
 		var dataMap map[string]string
 		if err := json.Unmarshal(b, &dataMap); err != nil {
-			fmt.Println("namenode put json to byte error", err)
+			sugarLogger.Errorf("namenode put json to byte error: %s", err)
+			// fmt.Println("namenode put json to byte error", err)
 		}
 		res := namenode.NameSpace.CreateFolder(dataMap["curPath"], dataMap["folderName"])
 		context.JSON(http.StatusOK, []bool{res})
@@ -350,8 +356,9 @@ func (namenode *NameNode) SetConfig(location string, dnnumber int, redundance in
 	temp := strings.Split(location, ":")
 	res, err := strconv.Atoi(temp[2])
 	if err != nil {
-		fmt.Println("XXX NameNode error at Atoi parse Port", err.Error())
-		TDFSLogger.Fatal("XXX NameNode error: ", err)
+		sugarLogger.Errorf("namenode error at atoi parse port: %s", err)
+		// fmt.Println("XXX NameNode error at Atoi parse Port", err.Error())
+		// TDFSLogger.Fatal("XXX NameNode error: ", err)
 	}
 	namenode.NameSpace = &Folder{
 		Name:   "root",
@@ -392,16 +399,18 @@ func (namenode *NameNode) GetDNMeta() { // UpdateMeta
 		namenode.Map[namenode.DNLocations[i]] = i
 		response, err := http.Get(namenode.DNLocations[i] + "/getmeta")
 		if err != nil {
-			fmt.Println("XXX NameNode error at Get meta of ", namenode.DNLocations[i], ": ", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error: ", err)
+			sugarLogger.Errorf("namenode error at get meta of %s: %s", namenode.DNLocations[i], err)
+			// fmt.Println("XXX NameNode error at Get meta of ", namenode.DNLocations[i], ": ", err.Error())
+			// TDFSLogger.Fatal("XXX NameNode error: ", err)
 		}
 		defer response.Body.Close()
 
 		var dn DataNode
 		err = json.NewDecoder(response.Body).Decode(&dn)
 		if err != nil {
-			fmt.Println("XXX NameNode error at decode response to json.", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error: ", err)
+			sugarLogger.Errorf("namenode error at decode response to json: %s", err)
+			// fmt.Println("XXX NameNode error at decode response to json.", err.Error())
+			// TDFSLogger.Fatal("XXX NameNode error: ", err)
 		}
 		// fmt.Println(dn)
 		// err = json.Unmarshal([]byte(str), &dn)
@@ -409,6 +418,7 @@ func (namenode *NameNode) GetDNMeta() { // UpdateMeta
 		namenode.DataNodes = append(namenode.DataNodes, dn)
 	}
 	namenode.ShowInfo()
+	go namenode.MonitorDN()
 }
 
 func (namenode *NameNode) StartNewDataNode(c []string) {

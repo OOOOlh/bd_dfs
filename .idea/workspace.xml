@@ -6,7 +6,14 @@
   <component name="ChangeListManager">
     <list default="true" id="3ab76a46-9055-4847-b47f-7f0d69ab0ae6" name="Changes" comment="节点扩容(部分)">
       <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hdfs/client.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/client.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hdfs/config.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/config.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hdfs/datanode.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/datanode.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hdfs/namenode.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/namenode.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hdfs/utils.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/utils.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hdfs/zaplog.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/zaplog.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/nn/NN.go" beforeDir="false" afterPath="$PROJECT_DIR$/nn/NN.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test.go" beforeDir="false" afterPath="$PROJECT_DIR$/test.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

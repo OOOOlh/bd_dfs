@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -22,8 +23,9 @@ func (client *Client) PutFile(localPath string, remotePath string) {
 	if err == nil {
 		err := os.RemoveAll(client.TempStoreLocation)
 		if err != nil {
-			fmt.Println("XXX Client error at remove tempfiles", err.Error())
-			TDFSLogger.Fatal("XXX Client error: ", err)
+			fmt.Println("client error at remove tempfiles", err.Error())
+			sugarLogger.Fatalf("client remove tempfiles error:%s ", err)
+			// TDFSLogger.Fatal("XXX Client error: ", err)
 		}
 	}
 
@@ -74,14 +76,14 @@ func (client *Client) PutFile(localPath string, remotePath string) {
 	//创建目录
 	err = os.MkdirAll(client.TempStoreLocation+"/"+file.Name, 0777)
 	if err != nil {
-		fmt.Println("XXX Client error at MkdirAll", err.Error())
-		TDFSLogger.Fatal("XXX NameNode error: ", err)
+		fmt.Println("client error at MkdirAll", err.Error())
+		// TDFSLogger.Fatal("XXX NameNode error: ", err)
+		sugarLogger.Fatalf("client makdir error: %s", err)
 	}
 
 	//开始向DN传数据
 	data := readFileByBytes(localPath)
 	for i := 0; i < len(file.Chunks); i++ {
-		// 存储在缓冲区中
 		CreateFile(client.TempStoreLocation + "/" + file.Name + "/chunk-" + strconv.Itoa(i))
 		//先在客户端本地分割
 		//if len(data) < SPLIT_UNIT {
@@ -107,8 +109,9 @@ func (client *Client) GetFile(fName string) { //, fName string
 	if err == nil {
 		err := os.RemoveAll(client.TempStoreLocation)
 		if err != nil {
-			fmt.Println("XXX Client error at remove tempfiles", err.Error())
-			TDFSLogger.Fatal("XXX Client error: ", err)
+			fmt.Println("client error at remove tempfiles", err.Error())
+			// TDFSLogger.Fatal("XXX Client error: ", err)
+			sugarLogger.Fatalf("client error at remove tempfiles: %s", err)
 		}
 	}
 	// err := os.RemoveAll(client.TempStoreLocation)
@@ -122,34 +125,39 @@ func (client *Client) GetFile(fName string) { //, fName string
 	response, err := http.Get(client.NameNodeAddr + "/getfile?filename=" + fName)
 	if err != nil {
 		fmt.Println("XXX Client error at Get file", err.Error())
-		TDFSLogger.Fatal("XXX Client error at Get file", err)
+		// TDFSLogger.Fatal("XXX Client error at Get file", err)
+		sugarLogger.Fatalf("Client error at Get file", err)
 	}
 	if response.StatusCode == http.StatusNotFound {
 		fmt.Printf("Client file=%v not found\n", fName)
-		TDFSLogger.Printf("Client file=%v not found", fName)
+		// TDFSLogger.Printf("Client file=%v not found", fName)
+		sugarLogger.Fatalf("Client file=%s not found", fName)
 		return
 	}
 	defer response.Body.Close()
 
 	bytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		fmt.Println("XXX Client error at read response data", err.Error())
-		TDFSLogger.Fatal("XXX Client error at read response data", err)
+		fmt.Println("client error at read response data", err.Error())
+		// TDFSLogger.Fatal("XXX Client error at read response data", err)
+		sugarLogger.Fatalf("client error at read response data:%s", err)
 	}
 
 	file := &File{}
 	err = json.Unmarshal(bytes, file)
 	if err != nil {
-		fmt.Println("XXX Client error at decode json", err.Error())
-		TDFSLogger.Fatal("XXX Client error at decode json", err)
+		fmt.Println("client error at decode json", err.Error())
+		// TDFSLogger.Fatal("XXX Client error at decode json", err)
+		sugarLogger.Fatalf("client error at decode json:%s", err)
 	}
 
 	fmt.Println("****************************************")
 
 	err = os.MkdirAll(client.TempStoreLocation+"/"+file.Name, 0777)
 	if err != nil {
+		sugarLogger.Fatalf("client mkdir error:%s", err)
 		fmt.Println("XXX Client error at MkdirAll", err.Error())
-		TDFSLogger.Fatal("XXX NameNode error: ", err)
+		// TDFSLogger.Fatal("XXX NameNode error: ", err)
 	}
 
 	for i := 0; i < len(file.Chunks); i++ {
@@ -290,8 +298,8 @@ func (client *Client) GetFolder(fName string) { //fName string
 	fmt.Println("****************************************")
 	fmt.Printf("*** Getting from TDFS [NameNode: %s] to ${GOPATH}/%s )\n", client.NameNodeAddr, fName) //  as %s , fName
 	//response, err := http.Get(client.NameNodeAddr + "/getfolder/" + fName)
-	data := map[string]string{"fname": fName}
-	d, err := json.Marshal(data)
+	// data := map[string]string{"fname": fName}
+	d, err := json.Marshal(fName)
 	if err != nil {
 		fmt.Println("json to byte[] error", err)
 	}
@@ -505,15 +513,24 @@ func (client *Client) AssembleFile(file File) {
 		// fmt.Println("& Assmble chunk-",i)
 	}
 	fdata := bytes.Join(filedata, nil)
+
 	//只创建文件夹
 	err := os.MkdirAll(client.StoreLocation+"/"+file.Name, 0777)
 	if err != nil {
 		fmt.Println("XXX Client error at MkdirAll", err.Error())
 		TDFSLogger.Fatal("XXX NameNode error: ", err)
 	}
+
+	d := strings.Split(file.RemotePath, "/")[1:]
+	var newDir string
+	for _, s := range(d){
+		newDir = newDir + s + "-"
+	}
+
+	dir := client.StoreLocation + "/" + file.Name + "/" + newDir + file.Name
 	//只创建文件
-	CreateFile(client.StoreLocation + "/" + file.Name + "/" + file.Name)
-	FastWrite(client.StoreLocation+"/"+file.Name+"/"+file.Name, fdata)
+	CreateFile(dir)
+	FastWrite(dir, fdata)
 }
 
 //client要求NameNode的两个DataNode删除chunk
