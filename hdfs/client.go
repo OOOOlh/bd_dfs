@@ -87,11 +87,6 @@ func (client *Client) PutFile(localPath string, remotePath string) {
 	data := readFileByBytes(localPath)
 	for i := 0; i < len(file.Chunks); i++ {
 		CreateFile(client.TempStoreLocation + "/" + file.Name + "/chunk-" + strconv.Itoa(i))
-		//先在客户端本地分割
-		//if len(data) < SPLIT_UNIT {
-		//	FastWrite(client.TempStoreLocation+"/"+file.Name+"/chunk-"+strconv.Itoa(i), data[i*SPLIT_UNIT:])
-		//} else {
-
 		if i == len(file.Chunks)-1 {
 			FastWrite(client.TempStoreLocation+"/"+file.Name+"/chunk-"+strconv.Itoa(i), data[i*SPLIT_UNIT:])
 		} else {
@@ -163,7 +158,6 @@ func (client *Client) GetFile(fName string) { //, fName string
 		//从DN接收文件，并保存在临时文件夹中
 		client.GetChunk(file, i)
 	}
-
 	/* 将文件夹下的块数据整合成一个文件 */
 	client.AssembleFile(*file)
 }
@@ -261,6 +255,38 @@ func StartNewDataNode(c []string) {
 	} else {
 		fmt.Println(err.Error())
 	}
+}
+
+// 获取文件元位置信息
+func (client *Client) GetFileStat(fName string) { //fName string
+	fmt.Println("****************************************")
+	fmt.Printf("*** Getting File Stat from BD_DFS [NameNode: %s] to ${GOPATH}/%s )\n", client.NameNodeAddr, fName) //  as %s , fName
+
+	data := map[string]string{"fname": fName}
+	d, err := json.Marshal(data)
+	if err != nil {
+		fmt.Println("json to byte[] error", err)
+	}
+	reader := bytes.NewReader(d)
+	response, err := http.Post(client.NameNodeAddr+"/getfilestat", "application/json", reader)
+
+	if err != nil {
+		fmt.Println("Client error at Get folder", err.Error())
+	}
+	defer response.Body.Close()
+
+	bytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		fmt.Println("Client error at read response data", err.Error())
+	}
+
+	var folder []string
+	if err = json.Unmarshal(bytes, &folder); err != nil {
+		fmt.Println("byte[] to json error", err)
+	}
+
+	fmt.Println("success get the file info :", data)
+
 }
 
 // 节点扩容

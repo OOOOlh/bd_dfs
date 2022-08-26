@@ -519,7 +519,25 @@ func (namenode *NameNode) Run() {
 		namenode.UpdateNewNode(dataMap)
 		context.JSON(http.StatusOK, "update success!")
 	})
-
+	router.POST("/getfilestat", func(c *gin.Context) {
+		b, _ := c.GetRawData() // 从c.Request.Body读取请求数据
+		var dataMap map[string]string
+		if err := json.Unmarshal(b, &dataMap); err != nil {
+			fmt.Println("namenode put json to byte error", err)
+		}
+		fmt.Println("there:")
+		fmt.Println(dataMap["fname"])
+		file, err := namenode.NameSpace.GetFileNode(dataMap["fname"])
+		if err != nil {
+			fmt.Printf("get file stat=%v error=%v\n", dataMap["fname"], err.Error())
+			c.JSON(http.StatusNotFound, err.Error())
+		}
+		filename := file.Name
+		length := file.Length
+		fmt.Println("filename: %s, filelength: %s\n", filename, length)
+		c.JSON(http.StatusOK, file)
+		//context.JSON(http.StatusOK, 1)
+	})
 	router.Run(":" + strconv.Itoa(namenode.Port))
 }
 

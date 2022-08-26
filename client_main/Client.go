@@ -59,6 +59,9 @@ func main() {
 	newNodeDir := flag.String("newNodeDir", "unknow", "the newNode dir you want to check")
 	newNodePort := flag.String("newNodePort", "unknow", "the newNode newNodePort you want to check")
 
+	//获取文件元数据信息
+	fileStatOfGet := flag.String("getfilestat", "unknow", "the info of file you want to search")
+
 	flag.Parse()
 	// 读取
 	if *filenameOfGet != "unknow" {
@@ -105,4 +108,9 @@ func main() {
 		fmt.Println("success create new node: #{*newNodeDir}, #{*newNodePort}")
 	}
 
+	//获取文件元数据信息
+	if *fileStatOfGet != "unknow" {
+		client.GetFileStat(*fileStatOfGet)
+		fmt.Println(" -Getfilestat for ", *fileStatOfGet)
+	}
 }
