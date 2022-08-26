@@ -401,13 +401,8 @@ func (namenode *NameNode) Run() {
 		fmt.Println("删除测试")
 
 		filename := dataMap["filename"]
-<<<<<<< HEAD
 		sugarLogger.Info("$ delfile ...", filename)
-		// fmt.Println("$ delfile ...", filename)
-=======
-		fmt.Println("$ delfile ...", filename)
 
->>>>>>> bdd4c8f6a7788f278fb30adc9ae16a2703d5bd08
 		node := namenode.NameSpace
 		file, err := node.GetFileNode(filename)
 		if err != nil {
@@ -415,9 +410,7 @@ func (namenode *NameNode) Run() {
 			context.JSON(http.StatusNotFound, err.Error())
 			return
 		}
-<<<<<<< HEAD
-		sugarLogger.Info("删除文件:获取到文件", file)
-=======
+
 		// 复制日志
 		success := namenode.AddEditLog("delfile", "", file, false, nil, nil)
 		if !success {
@@ -425,7 +418,6 @@ func (namenode *NameNode) Run() {
 			return
 		}
 
->>>>>>> bdd4c8f6a7788f278fb30adc9ae16a2703d5bd08
 		for i := 0; i < len(file.Chunks); i++ {
 			namenode.DelChunk(*file, i)
 		}
