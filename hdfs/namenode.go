@@ -304,10 +304,14 @@ func (namenode *NameNode) Run() {
 		fmt.Println("$ getfile ...", filename)
 		node := namenode.NameSpace
 		file, err := node.GetFileNode(filename)
+		sugarLogger.Info("获取到的文件为:", file)
 		if err != nil {
 			fmt.Println(err)
 		}
 
+		if file == nil{
+			file = &File{}
+		}
 		//遍历每个chunk的每个副本位置，并更新
 		//因为可能该节点挂了，需要更新
 		//不确定是否能够到文件树内部的信息
@@ -318,8 +322,6 @@ func (namenode *NameNode) Run() {
 		}
 		if err != nil {
 			sugarLogger.Errorf("get file: %s error: %v\n", filename, err.Error())
-			// TDFSLogger.Printf("get file:%v error=%v\n", filename, err.Error())
-			// fmt.Printf("get file=%v error=%v\n", filename, err.Error())
 			c.JSON(http.StatusNotFound, err.Error())
 			return
 		}
@@ -332,9 +334,11 @@ func (namenode *NameNode) Run() {
 		if err := json.Unmarshal(b, &dataMap); err != nil {
 			sugarLogger.Errorf("namenode put json to byte error: %s", err)
 		}
+		fmt.Println("删除测试")
 
 		filename := dataMap["filename"]
-		fmt.Println("$ delfile ...", filename)
+		sugarLogger.Info("$ delfile ...", filename)
+		// fmt.Println("$ delfile ...", filename)
 		node := namenode.NameSpace
 		file, err := node.GetFileNode(filename)
 		if err != nil {
@@ -342,10 +346,11 @@ func (namenode *NameNode) Run() {
 			context.JSON(http.StatusNotFound, err.Error())
 			return
 		}
+		sugarLogger.Info("删除文件:获取到文件", file)
 		for i := 0; i < len(file.Chunks); i++ {
 			namenode.DelChunk(*file, i)
 		}
-
+		*file = File{}
 		context.JSON(http.StatusOK, file)
 	})
 
@@ -391,18 +396,6 @@ func (namenode *NameNode) Run() {
 		}
 		context.JSON(http.StatusOK, filenames)
 	})
-
-	//router.GET("/getfolder/:foldername", func(c *gin.Context) {
-	//	foldername := c.Param("foldername")
-	//	fmt.Println("$ getfolder ...", foldername)
-	//	TDFSLogger.Fatal("$ getfolder ...", foldername)
-	//	files := namenode.NameSpace.GetFileList(foldername)
-	//	var filenames []string
-	//	for i := 0; i < len(files); i++ {
-	//		filenames = append(filenames, files[i].Name)
-	//	}
-	//	c.JSON(http.StatusOK, filenames)
-	//})
 
 	//创建文件目录
 	router.POST("/mkdir", func(context *gin.Context) {
@@ -463,17 +456,13 @@ func (namenode *NameNode) DelChunk(file File, num int) {
 	//预删除文件的块信息
 	//修改namenode.DataNodes[].ChunkAvail
 	//和namenode.DataNodes[].StorageAvail
-	var wg sync.WaitGroup
-	wg.Add(REDUNDANCE)
 	for i := 0; i < REDUNDANCE; i++ {
 		chunklocation := file.Chunks[num].ReplicaLocationList[i].ServerLocation
 		chunknum := file.Chunks[num].ReplicaLocationList[i].ReplicaNum
 		index := namenode.Map[chunklocation]
 		namenode.DataNodes[index].ChunkAvail = append(namenode.DataNodes[index].ChunkAvail, chunknum)
 		namenode.DataNodes[index].StorageAvail++
-		wg.Done()
 	}
-	wg.Wait()
 }
 
 func (namenode *NameNode) AllocateChunk() (rlList [REDUNDANCE]ReplicaLocation, tempDNArr []int) {

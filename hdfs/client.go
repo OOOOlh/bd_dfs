@@ -114,11 +114,7 @@ func (client *Client) GetFile(fName string) { //, fName string
 			sugarLogger.Fatalf("client error at remove tempfiles: %s", err)
 		}
 	}
-	// err := os.RemoveAll(client.TempStoreLocation)
-	// if err!=nil {
-	// 	fmt.Println("XXX Client error at remove tempfiles", err.Error())
-	// 	TDFSLogger.Fatal("XXX Client error: ", err)
-	// }
+
 	fmt.Println("****************************************")
 	fmt.Printf("*** Getting from TDFS [NameNode: %s] to ${GOPATH}/%s )\n", client.NameNodeAddr, fName) //  as %s , fName
 
@@ -131,7 +127,7 @@ func (client *Client) GetFile(fName string) { //, fName string
 	if response.StatusCode == http.StatusNotFound {
 		fmt.Printf("Client file=%v not found\n", fName)
 		// TDFSLogger.Printf("Client file=%v not found", fName)
-		sugarLogger.Fatalf("Client file=%s not found", fName)
+		sugarLogger.Warnf("Client file=%s not found", fName)
 		return
 	}
 	defer response.Body.Close()
@@ -390,12 +386,13 @@ func (client *Client) DelFile(fName string) {
 	fmt.Println("****************************************")
 	fmt.Printf("*** Deleting from TDFS [NameNode: %s] of /%s )\n", client.NameNodeAddr, fName)
 
-	d, err := json.Marshal(fName)
+	data := map[string]string{"filename": fName}
+	d, err := json.Marshal(data)
 	if err != nil {
 		fmt.Println("json to byte[] error", err)
 	}
 	reader := bytes.NewReader(d)
-	response, err := http.Post(client.NameNodeAddr+"/delFile", "application/json", reader)
+	response, err := http.Post(client.NameNodeAddr+"/delfile", "application/json", reader)
 	if err != nil {
 		fmt.Println("Client error at Delete File", err.Error())
 	}
