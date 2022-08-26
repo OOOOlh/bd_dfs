@@ -18,7 +18,7 @@ bd_dfs 使用主从式（Master/Slave）架构。一个集群分为名称节点 
 
 ```markdown
 ├── client_main
-│ └── Client.go // 来模拟一个 d_dfs 的 Client
+│ └── Client.go // 来模拟一个 bd_dfs 的 Client
 ├── dn
 │ └── DataNode // 在本地伪分布式演示时 DN 的工作目录
 │ └── achunkhashs // DN 的工作目录下存储文件块数据哈希值的目录
@@ -48,8 +48,9 @@ bd_dfs 使用主从式（Master/Slave）架构。一个集群分为名称节点 
 │ └── NameNode // 在本地伪分布式演示时 NN 的工作目录
 │ └── NN.go
 └── test.go
+```
 
-### 3. 基本模块功能介绍
+### 3. 基本模块功能介绍及命令
 
 1. 上传文件：将本地文件上传至分布式文件系统
    `go run Client.go -local <本地文件路径> -remote <远程文件路径>`
@@ -67,26 +68,24 @@ bd_dfs 使用主从式（Master/Slave）架构。一个集群分为名称节点 
    `go run Client.go -curFolder <文件夹> -newFolder <新的文件夹名称>`
 8. 节点扩容： 根据 node 名称和端口在本地开启新的 datanode  
    `go run Client.go -newNodeDir <datanode地址> -newNodePort <datanode端口>`
-9.
 
 ### 4. 项目启动流程
-```
-
-cd nn1
-go run NN.go //启动 namenode 和多个 datanode
-
-cd nn2
-go run NN.go //启动 namenode2
-
-cd nn3
-go run NN.go //启动 namenode3
-
-(当前目录下)
-cd ../client_main  
-(调用客户端发出执行，以上传文件为例)
-go run Client.go -local <本地文件路径> -remote <远程文件路径>
 
 ```
+  cd nn1
+  go run NN.go //启动 namenode 和多个 datanode
+
+  cd nn2
+  go run NN.go //启动 namenode2
+
+  cd nn3
+  go run NN.go //启动 namenode3
+
+  (当前目录下)
+  cd ../client_main
+  (调用客户端发出执行，以上传文件为例)
+  go run Client.go -local <本地文件路径> -remote <远程文件路径>
+  其他命令可以参考3
 
 ```
 
@@ -104,3 +103,5 @@ Windows 下：
 
 - 等待 30s，NameNode 感知到 DataNode 节点故障。可以看到此时新启动了一个进程。下载文件，非常流畅，因为此时故障节点上所有文件信息都被拷贝到新节点上了。
   ![image](https://github.com/OOOOlh/bd_dfs/blob/main/image/windows_datanode3.png)
+
+Linux 下：
