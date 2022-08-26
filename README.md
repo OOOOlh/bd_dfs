@@ -97,10 +97,10 @@ go run Client.go -local <本地文件路径> -remote <远程文件路径>
 Windows 下：
 
 - 打开任务管理器，可以看到如下 3 个 DataNode 进程：
-  ![image]https://github.com/OOOOlh/bd_dfs/blob/main/image/windows_datanode1.png
+  ![image](https://github.com/OOOOlh/bd_dfs/blob/main/image/windows_datanode1.png)
 - 任选一个，右键`结束任务`。目前还剩下两个：
-  ![image]https://github.com/OOOOlh/bd_dfs/blob/main/image/windows_datanode2.png
+  ![image](https://github.com/OOOOlh/bd_dfs/blob/main/image/windows_datanode2.png)
 - 此时下载文件，可以看到下载速度很慢，但仍然能够下载完，因为 Client 要到其他副本 DataNode 上下载文件块
 
 - 等待 30s，NameNode 感知到 DataNode 节点故障。可以看到此时新启动了一个进程。下载文件，非常流畅，因为此时故障节点上所有文件信息都被拷贝到新节点上了。
-  ![image]https://github.com/OOOOlh/bd_dfs/blob/main/image/windows_datanode3.png
+  ![image](https://github.com/OOOOlh/bd_dfs/blob/main/image/windows_datanode3.png)
