@@ -1,5 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+<<<<<<< HEAD
+  <component name="ChangeListManager">
+    <list default="true" id="79d4f096-7db4-4973-9f2b-c2d11805eb6d" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client_main/test.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dn/DN.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/hdfs/zaplog.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client_main/Client.go" beforeDir="false" afterPath="$PROJECT_DIR$/client_main/Client.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dn1/DN1.go" beforeDir="false" afterPath="$PROJECT_DIR$/dn1/DN1.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dn2/DN2.go" beforeDir="false" afterPath="$PROJECT_DIR$/dn2/DN2.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dn3/DN3.go" beforeDir="false" afterPath="$PROJECT_DIR$/dn3/DN3.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
+=======
   <component name="AutoImportSettings">
     <option name="autoReloadType" value="ALL" />
   </component>
@@ -22,20 +36,50 @@
     <select />
   </component>
   <component name="ChangeListManager">
+<<<<<<< HEAD
+    <list default="true" id="3ab76a46-9055-4847-b47f-7f0d69ab0ae6" name="Changes" comment="节点扩容(部分)">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+>>>>>>> upstream/main
+=======
     <list default="true" id="6d193192-7d0f-4f09-9dc7-14fd8853460b" name="Changes" comment="增加了根据路径获取目录列表和修改目录名的接口">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data.txt" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
+>>>>>>> upstream/main
       <change beforePath="$PROJECT_DIR$/hdfs/client.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/client.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hdfs/namenode.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/namenode.go" afterDir="false" />
+<<<<<<< HEAD
+<<<<<<< HEAD
+      <change beforePath="$PROJECT_DIR$/hdfs/raft.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/raft.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hdfs/utils.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/utils.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/nn1/NN.go" beforeDir="false" afterPath="$PROJECT_DIR$/nn1/NN.go" afterDir="false" />
+=======
+      <change beforePath="$PROJECT_DIR$/hdfs/utils.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/utils.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hdfs/zaplog.go" beforeDir="false" afterPath="$PROJECT_DIR$/hdfs/zaplog.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/nn/NN.go" beforeDir="false" afterPath="$PROJECT_DIR$/nn/NN.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test.go" beforeDir="false" afterPath="$PROJECT_DIR$/test.go" afterDir="false" />
+>>>>>>> upstream/main
+=======
       <change beforePath="$PROJECT_DIR$/test.go" beforeDir="false" />
+>>>>>>> upstream/main
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+<<<<<<< HEAD
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Go File" />
+      </list>
+    </option>
+  </component>
+  <component name="GOROOT" url="file:///usr/local/go" />
+=======
   <component name="GOROOT" url="file://$PROJECT_DIR$/../../Program Files/Go" />
+>>>>>>> upstream/main
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
     <option name="RESET_MODE" value="SOFT" />
@@ -43,6 +87,20 @@
   <component name="GoLibraries">
     <option name="indexEntireGoPath" value="false" />
   </component>
+<<<<<<< HEAD
+  <component name="GitSEFilterConfiguration">
+    <file-type-list>
+      <filtered-out-file-type name="LOCAL_BRANCH" />
+      <filtered-out-file-type name="REMOTE_BRANCH" />
+      <filtered-out-file-type name="TAG" />
+      <filtered-out-file-type name="COMMIT_BY_MESSAGE" />
+    </file-type-list>
+  </component>
+  <component name="GoLibraries">
+    <option name="indexEntireGoPath" value="false" />
+  </component>
+  <component name="ProjectId" id="2DcpsL94ZHfM50dp6pfQw26OZzK" />
+=======
   <component name="HighlightingSettingsPerFile">
     <setting file="file://$PROJECT_DIR$/client_main/Client.go" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/dn1/DN1.go" root0="FORCE_HIGHLIGHTING" />
@@ -56,14 +114,40 @@
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
+<<<<<<< HEAD
+  <component name="ProjectId" id="2DhUvij71O7IxTJ2iAkqzXEZLAd" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+>>>>>>> upstream/main
+=======
   <component name="ProjectId" id="2DU1qk1dZaOyla4IUL51TFUcBMo" />
   <component name="ProjectLevelVcsManager">
     <ConfirmationsSetting value="2" id="Add" />
   </component>
+>>>>>>> upstream/main
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
+<<<<<<< HEAD
+  <component name="PropertiesComponent">
+    <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
+    <property name="DefaultGoTemplateProperty" value="Go File" />
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="go.import.settings.migrated" value="true" />
+    <property name="go.sdk.automatically.set" value="true" />
+    <property name="go.tried.to.enable.integration.vgo.integrator" value="true" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/nn3" />
+    <property name="settings.editor.selected.configurable" value="watcher.settings" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/nn3" />
+      <recent name="$PROJECT_DIR$/nn2" />
+      <recent name="$PROJECT_DIR$" />
+    </key>
+=======
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
     &quot;RunOnceActivity.go.format.on.save.advertiser.fired&quot;: &quot;true&quot;,
@@ -145,6 +229,7 @@
         <item itemvalue="Go Build.go build NN.go" />
       </list>
     </recent_temporary>
+>>>>>>> upstream/main
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TypeScriptGeneratedFilesManager">
@@ -161,12 +246,15 @@
       </map>
     </option>
   </component>
+<<<<<<< HEAD
+=======
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Finish create Folder port" />
     <MESSAGE value="增加了根据路径获取目录列表和修改目录名的接口" />
     <option name="LAST_COMMIT_MESSAGE" value="增加了根据路径获取目录列表和修改目录名的接口" />
   </component>
+>>>>>>> upstream/main
   <component name="VgoProject">
-    <settings-migrated>true</settings-migrated>
+    <integration-enabled>true</integration-enabled>
   </component>
 </project>

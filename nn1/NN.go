@@ -1,6 +1,9 @@
 package main
 
-import "hdfs/hdfs"
+import (
+	"hdfs/hdfs"
+	"time"
+)
 
 const NN_DIR string = "./namenode"
 const NN_LOCATION string = "http://localhost:11090"
@@ -18,6 +21,7 @@ func main() {
 	nn.NAMENODE_DIR = NN_DIR
 	nn.StandByDataNode = standBy
 	// dnlocations := []string{"http://localhost:11091", "http://localhost:11092", "http://localhost:11093"}
+	nnlocations := []string{"http://localhost:11088", "http://localhost:11089", "http://localhost:11090"}
 	//nn.Reset()
 	c := [][]string{
 		{EXEC, "-dir", "dn1", "-port", "11091"},
@@ -31,8 +35,9 @@ func main() {
 		dnlocations = append(dnlocations, "http://localhost:"+c[i][4])
 		nn.StartNewDataNode(c[i])
 	}
-
-	nn.SetConfig(NN_LOCATION, len(c), rEDUNDANCE, dnlocations)
+	time.Sleep(time.Second * 3)
+	nn.SetConfig(NN_LOCATION, len(c), rEDUNDANCE, dnlocations, nnlocations)
 	nn.GetDNMeta() // UpdateMeta
+	go nn.RunHeartBeat()
 	nn.Run()
 }

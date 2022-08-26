@@ -15,9 +15,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var mu sync.Locker
@@ -133,6 +132,120 @@ func (namenode *NameNode) Run() {
 	// register the `/metrics` route.
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
+	router.GET("/leader", func(c *gin.Context) {
+		c.String(http.StatusOK, namenode.LeaderLocation)
+	})
+
+	router.POST("/nn_heartbeat", func(c *gin.Context) {
+		b, _ := c.GetRawData() // 从c.Request.Body读取请求数据
+		if len(b) == 0 {
+			fmt.Println("empty data")
+			c.JSON(http.StatusBadRequest, nil)
+			return
+		}
+		heartBeat := &NNHeartBeat{}
+		if err := json.Unmarshal(b, heartBeat); err != nil {
+			fmt.Println("unmarshal heartbeat data error")
+			c.JSON(http.StatusBadRequest, nil)
+			return
+		}
+		fmt.Printf("receive heartbeat=%+v\n", heartBeat)
+		fmt.Printf("editLog=%+v\n", heartBeat.EditLog)
+		if heartBeat.Term < namenode.Term {
+			fmt.Println("term is too low")
+			c.JSON(http.StatusBadRequest, nil)
+			return
+		} else if heartBeat.Term > namenode.Term {
+			fmt.Println("bigger term")
+			namenode.Term = heartBeat.Term
+			namenode.IsLeader = false
+			namenode.LeaderLocation = heartBeat.LeaderLocation
+		}
+		if !namenode.IsLeader {
+			fmt.Println("follower reset ticker")
+			namenode.HeartBeatTicker.Reset(3 * HeartBeatInterval)
+			namenode.LeaderLocation = heartBeat.LeaderLocation
+			namenode.Term = heartBeat.Term
+		}
+		if len(heartBeat.EditLog) == 0 {
+			// 不带editlog的心跳同步
+			fmt.Println("without edit log")
+			fmt.Printf("leader commit=%+v follower commit=%+v\n", heartBeat.LeaderCommitIndex, namenode.CommitIndex)
+			if heartBeat.LeaderCommitIndex == namenode.CommitIndex {
+				c.JSON(http.StatusOK, namenode.CommitIndex)
+				return
+			}
+			if heartBeat.LeaderCommitIndex > namenode.CommitIndex {
+				for _, log := range namenode.TmpLog[namenode.CommitIndex:] {
+					// 应用变动到namenode文件树
+					namenode.ApplyEditLog(log)
+					fmt.Println("change namenode file tree")
+					namenode.CommitIndex = log.CommitIndex
+				}
+				c.JSON(http.StatusOK, namenode.CommitIndex)
+				return
+			}
+			c.JSON(http.StatusBadRequest, namenode.CommitIndex)
+			return
+		} else {
+			fmt.Println("has edit log")
+			fmt.Printf("pre log index=%+v tmpLog=%+v\n", heartBeat.PreLogIndex, namenode.TmpLog)
+			if heartBeat.PreLogIndex > len(namenode.TmpLog) {
+				fmt.Println("bigger pre log index")
+				c.JSON(http.StatusNotAcceptable, namenode.CommitIndex)
+				return
+			}
+			if heartBeat.PreLogIndex > 0 && heartBeat.PreLogTerm != namenode.TmpLog[heartBeat.PreLogIndex-1].Term {
+				c.JSON(http.StatusBadRequest, namenode.CommitIndex)
+				return
+			}
+			for _, log := range heartBeat.EditLog {
+				if log.CommitIndex > len(namenode.TmpLog) {
+					namenode.TmpLog = append(namenode.TmpLog, log)
+				} else {
+					if namenode.TmpLog[log.CommitIndex-1].Term != log.Term ||
+						namenode.TmpLog[log.CommitIndex-1].CommitIndex != log.CommitIndex {
+						namenode.TmpLog[log.CommitIndex-1] = log
+					}
+				}
+				if log.CommitIndex <= heartBeat.LeaderCommitIndex &&
+					log.CommitIndex > namenode.CommitIndex {
+					// 应用到文件树
+					namenode.ApplyEditLog(log)
+					fmt.Println("change namenode file tree")
+					namenode.CommitIndex = log.CommitIndex
+				}
+			}
+			logStr, _ := json.Marshal(namenode.TmpLog)
+			fmt.Printf("tmpLog=%+v commitIndex=%+v\n", string(logStr), namenode.CommitIndex)
+			c.JSON(http.StatusOK, namenode.CommitIndex)
+			return
+		}
+	})
+
+	router.POST("/vote", func(c *gin.Context) {
+		b, _ := c.GetRawData() // 从c.Request.Body读取请求数据
+		vote := &Vote{}
+		// 反序列化
+		if len(b) == 0 {
+			fmt.Println("put request body为空")
+		}
+		if err := json.Unmarshal(b, vote); err != nil {
+			fmt.Println("namenode put json to byte error", err)
+		}
+		fmt.Printf("receive vote=%+v\n time=%+v", vote, time.Now())
+		if vote.Term <= namenode.Term {
+			c.JSON(http.StatusBadRequest, nil)
+			return
+		}
+		if vote.LeaderCommitIndex < namenode.CommitIndex {
+			c.JSON(http.StatusBadRequest, nil)
+			return
+		}
+		namenode.Term = vote.Term
+		c.JSON(http.StatusOK, nil)
+	})
+
 	//校验dn信息
 	router.POST("/heartbeat", func(c *gin.Context) {
 		d, _ := c.GetRawData()
@@ -152,7 +265,6 @@ func (namenode *NameNode) Run() {
 		namenode.Mu.Unlock()
 
 		//可用chunk数
-
 		if len(datanode.ChunkAvail) != len(localDataNode.ChunkAvail) {
 			sugarLogger.Errorf("datanode %s : 可用chunk数目出错\n", datanode.Location)
 		}
@@ -169,65 +281,7 @@ func (namenode *NameNode) Run() {
 		if err := json.Unmarshal(b, file); err != nil {
 			sugarLogger.Errorf("namenode put json to byte error: %s", err)
 		}
-
-		path := strings.Split(file.RemotePath, "/")
-
-		var n *Folder
-		ff := namenode.NameSpace
-		//例如：path = /root/temp/dd/
-		//遍历所有文件夹，/root/下的所有文件夹
-		folder := &ff.Folder
-		// folder := &namenode.NameSpace.Folder
-
-		// /root或/root/都ok
-		if len(path) == 2 || (len(path) == 3 && path[2] == "") {
-			n = ff
-		} else {
-			for _, p := range path[2:] {
-				if p == "" {
-					continue
-				}
-				exist := false
-				for _, n = range *folder {
-					if p == n.Name {
-						exist = true
-						break
-					}
-				}
-				//如果不存在，就新建一个文件夹
-				if !exist {
-					sugarLogger.Warn("namenode: file not exist")
-					var tempFloder Folder = Folder{}
-					tempFloder.Name = p
-					*folder = append(*folder, &tempFloder)
-					//下一层
-					folder = &(*folder)[len(*folder)-1].Folder
-					n = &tempFloder
-				} else {
-					folder = &n.Folder
-				}
-			}
-
-		}
-		//直接把文件写在当前文件夹下
-		var exist bool
-		var changed bool = true
-		var f *File
-		for _, f = range n.Files {
-			exist = false
-			//找到目标文件
-			if f.Name == file.Name {
-				exist = true
-				//校验文件是否改变
-				if f.Info == file.Info {
-					//如果没改变，client就不用向datanode改变信息
-					sugarLogger.Info("namenode: file exists and not changed")
-					changed = false
-				}
-				break
-			}
-		}
-
+		// 分割文件成块
 		var chunkNum int
 		var fileLength = int(file.Length)
 
@@ -286,16 +340,26 @@ func (namenode *NameNode) Run() {
 			file.Chunks = append(file.Chunks, *fileChunk)
 			file.Chunks[i].ReplicaLocationList = replicaLocationList
 		}
-
-		if !exist {
-			n.Files = append(n.Files, file)
-		} else if changed {
-			sugarLogger.Info("namenode: file exists and changed")
-			f = file
+		// 复制日志
+		success := namenode.AddEditLog("put", file.RemotePath+file.Name, file, false, nil, nil)
+		if !success {
+			// 同步不成功，回滚namenode块信息
+			for _, chunk := range file.Chunks {
+				for _, r := range chunk.ReplicaLocationList {
+					for _, dn := range namenode.DataNodes {
+						if dn.Location == r.ServerLocation {
+							dn.ChunkAvail = append(dn.ChunkAvail, r.ReplicaNum)
+							dn.StorageAvail++
+							break
+						}
+					}
+				}
+			}
+			c.JSON(http.StatusBadRequest, nil)
+			return
 		}
-		if !changed {
-			file = &File{}
-		}
+		fmt.Printf("add log success=%v\n", success)
+		namenode.PutFile(file)
 		c.JSON(http.StatusOK, file)
 	})
 	//
@@ -335,6 +399,7 @@ func (namenode *NameNode) Run() {
 
 		filename := dataMap["filename"]
 		fmt.Println("$ delfile ...", filename)
+
 		node := namenode.NameSpace
 		file, err := node.GetFileNode(filename)
 		if err != nil {
@@ -342,6 +407,13 @@ func (namenode *NameNode) Run() {
 			context.JSON(http.StatusNotFound, err.Error())
 			return
 		}
+		// 复制日志
+		success := namenode.AddEditLog("delfile", "", file, false, nil, nil)
+		if !success {
+			context.JSON(http.StatusBadRequest, nil)
+			return
+		}
+
 		for i := 0; i < len(file.Chunks); i++ {
 			namenode.DelChunk(*file, i)
 		}
@@ -356,6 +428,12 @@ func (namenode *NameNode) Run() {
 		if err := json.Unmarshal(b, &dataMap); err != nil {
 			sugarLogger.Errorf("namenode put json to byte error: %s", err)
 			// fmt.Println("namenode put json to byte error", err)
+		}
+		// 复制日志
+		success := namenode.AddEditLog("reFolderName", "", nil, false, dataMap, nil)
+		if !success {
+			context.JSON(http.StatusBadRequest, nil)
+			return
 		}
 		res := namenode.NameSpace.ReNameFolderName(dataMap["preFolder"], dataMap["reNameFolder"])
 		context.JSON(http.StatusOK, res)
@@ -412,6 +490,12 @@ func (namenode *NameNode) Run() {
 			sugarLogger.Errorf("namenode put json to byte error: %s", err)
 			// fmt.Println("namenode put json to byte error", err)
 		}
+		// 复制日志
+		success := namenode.AddEditLog("mkdir", "", nil, false, dataMap, nil)
+		if !success {
+			context.JSON(http.StatusBadRequest, nil)
+			return
+		}
 		res := namenode.NameSpace.CreateFolder(dataMap["curPath"], dataMap["folderName"])
 		context.JSON(http.StatusOK, []bool{res})
 	})
@@ -432,27 +516,15 @@ func (namenode *NameNode) Run() {
 		}
 		fmt.Printf("newNode dir %s \n", dataMap["newNode"][0])
 		fmt.Printf("newNode port %s \n", dataMap["newNode"][1])
+		// 复制日志
+		success := namenode.AddEditLog("updataNewNode", "", nil, false, nil, dataMap)
+		if !success {
+			context.JSON(http.StatusBadRequest, nil)
+			return
+		}
 
 		// 更新namenode保存的可用datanode
-		namenode.DNLocations = append(namenode.DNLocations, "http://localhost:"+dataMap["newNode"][1])
-		port, _ := strconv.Atoi(dataMap["newNode"][1])
-		chunkAvail := []int{}
-		for i := len(dataMap["filePath"]); i < 400; i++ {
-			chunkAvail = append(chunkAvail, i)
-		}
-		newNode := DataNode{
-			Location:     "http://localhost:" + dataMap["newNode"][1],
-			Port:         port,
-			StorageTotal: 400,
-			StorageAvail: 400 - len(dataMap["filePath"]),
-			ChunkAvail:   chunkAvail,
-			LastEdit:     0,
-			DATANODE_DIR: "nil",
-			NNLocation:   []string{},
-			LastQuery:    0,
-			ZapLogger:    &zap.SugaredLogger{},
-		}
-		namenode.DataNodes = append(namenode.DataNodes, newNode)
+		namenode.UpdateNewNode(dataMap)
 		context.JSON(http.StatusOK, "update success!")
 	})
 
@@ -513,7 +585,7 @@ func (namenode *NameNode) AllocateChunk() (rlList [REDUNDANCE]ReplicaLocation, t
 	return rlList, tempDNArr
 }
 
-func (namenode *NameNode) SetConfig(location string, dnnumber int, redundance int, dnlocations []string) {
+func (namenode *NameNode) SetConfig(location string, dnnumber int, redundance int, dnlocations []string, nnlocations []string) {
 	namenode.OldToNewMap = make(map[string]string)
 	temp := strings.Split(location, ":")
 	res, err := strconv.Atoi(temp[2])
@@ -529,9 +601,13 @@ func (namenode *NameNode) SetConfig(location string, dnnumber int, redundance in
 	}
 	namenode.Port = res
 	namenode.Location = location
+	namenode.NNLocations = nnlocations
 	namenode.DNNumber = dnnumber
 	namenode.DNLocations = dnlocations
 	namenode.REDUNDANCE = redundance
+	namenode.TmpLog = make([]*EditLog, 0)
+	namenode.MatchIndex = make(map[string]int)
+	namenode.HeartBeatTicker = time.NewTicker(HeartBeatInterval)
 	fmt.Println("************************************************************")
 	fmt.Println("************************************************************")
 	fmt.Printf("*** Successfully Set Config data for the namenode\n")
@@ -605,5 +681,96 @@ func (namenode *NameNode) StartNewDataNode(c []string) {
 	} else {
 		fmt.Println(err.Error())
 	}
+}
 
+func (namenode *NameNode) PutFile(file *File) *File {
+	path := strings.Split(file.RemotePath, "/")
+
+	var n *Folder
+	ff := namenode.NameSpace
+	//例如：path = /root/temp/dd/
+	//遍历所有文件夹，/root/下的所有文件夹
+	folder := &ff.Folder
+	// folder := &namenode.NameSpace.Folder
+	// /root或/root/都ok
+	if len(path) == 2 || (len(path) == 3 && path[2] == "") {
+		n = ff
+	} else {
+		for _, p := range path[2:] {
+			if p == "" {
+				continue
+			}
+			exist := false
+			for _, n = range *folder {
+				if p == n.Name {
+					exist = true
+					break
+				}
+			}
+			//如果不存在，就新建一个文件夹
+			if !exist {
+				//TDFSLogger.Println("namenode: file not exist")
+				var tempFloder Folder = Folder{}
+				tempFloder.Name = p
+				*folder = append(*folder, &tempFloder)
+				//下一层
+				folder = &(*folder)[len(*folder)-1].Folder
+				n = &tempFloder
+			} else {
+				folder = &n.Folder
+			}
+		}
+	}
+
+	//直接把文件写在当前文件夹下
+	var exist bool
+	var changed bool = true
+	var f *File
+	for _, f = range n.Files {
+		exist = false
+		//找到目标文件
+		if f.Name == file.Name {
+			exist = true
+			//校验文件是否改变
+			if f.Info == file.Info {
+				//如果没改变，client就不用向datanode改变信息
+				sugarLogger.Info("namenode: file exists and not changed")
+				changed = false
+			}
+			break
+		}
+	}
+
+	if !exist {
+		n.Files = append(n.Files, file)
+	} else if changed {
+		sugarLogger.Info("namenode: file exists and changed")
+		f = file
+	}
+	if !changed {
+		file = &File{}
+	}
+	return file
+}
+
+func (namenode *NameNode) UpdateNewNode(dataMap map[string][]string) {
+	namenode.DNLocations = append(namenode.DNLocations, "http://localhost:"+dataMap["newNode"][1])
+	port, _ := strconv.Atoi(dataMap["newNode"][1])
+	chunkAvail := []int{}
+	for i := len(dataMap["filePath"]); i < 400; i++ {
+		chunkAvail = append(chunkAvail, i)
+	}
+	newNode := DataNode{
+		Location:     "http://localhost:" + dataMap["newNode"][1],
+		Port:         port,
+		StorageTotal: 400,
+		StorageAvail: 400 - len(dataMap["filePath"]),
+		ChunkAvail:   chunkAvail,
+		LastEdit:     0,
+		DATANODE_DIR: "nil",
+		NNLocation:   []string{},
+		LastQuery:    0,
+		ZapLogger:    &zap.SugaredLogger{},
+	}
+	namenode.DataNodes = append(namenode.DataNodes, newNode)
 }

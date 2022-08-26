@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"go.uber.org/zap"
 )
@@ -13,6 +14,7 @@ import (
 /** Configurations for ALL Mode **/
 const SPLIT_UNIT int = 1000
 const REDUNDANCE int = 2
+const HeartBeatInterval = 3 * time.Second
 const DN_CAPACITY int = 400
 const DN_DIR string = "./datanode"
 
@@ -228,16 +230,17 @@ type FileChunk struct {
 type ReplicaLocation struct {
 	//冗余块的位置
 	//index指对应的DN在NN数组中的下标
-	index int
+	index          int
 	ServerLocation string
 	ReplicaNum     int
-	OldNum int
+	OldNum         int
 }
 
 type Client struct {
 	StoreLocation     string
 	TempStoreLocation string
 	NameNodeAddr      string
+	AllNameNodeAddr   []string
 	Mode              int
 }
 type Config struct {
@@ -250,6 +253,8 @@ type NameNode struct {
 	NameSpace *Folder
 	Location  string
 	Port      int
+	//NameNode位置
+	NNLocations []string
 	//DataNode数量
 	DNNumber int
 	//DataNode位置
@@ -260,9 +265,11 @@ type NameNode struct {
 	// 冗余块
 	REDUNDANCE int
 	Map        map[string]int
+	Raft
+
 	StandByDataNode [][]string
-	Mu sync.Mutex
-	OldToNewMap map[string]string
+	Mu              sync.Mutex
+	OldToNewMap     map[string]string
 }
 
 type DataNode struct {
@@ -276,13 +283,12 @@ type DataNode struct {
 
 	// Ticker *time.Ticker
 	NNLocation []string
-	LastQuery int64
+	LastQuery  int64
 
 	// DNLogger *log.Logger
 	ZapLogger *zap.SugaredLogger
 	// Chunk []ReplicaLocation
 	ChunkCopy [DN_CAPACITY][REDUNDANCE]ReplicaLocation
-	
 }
 type DNMeta struct {
 	StorageTotal int `json:"StorageTotal"`
