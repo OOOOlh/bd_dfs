@@ -2,11 +2,8 @@ package main
 
 import (
 	"flag"
-	// "bd_hdfs/tdfs"
 	"fmt"
 	"hdfs/hdfs"
-	// "runtime"
-	// "sync"
 )
 
 func main() {
@@ -36,16 +33,19 @@ func main() {
 	client.StoreLocation = "./dfs"
 	client.TempStoreLocation = "./dfs/temp"
 
-	// 获取文件
-	filenameOfGet := flag.String("getfile", "unknow", "the filename of the file you want to get") // SmallFile
 	//文件上传
 	localFilePath := flag.String("local", "unknow", "local_file_path")
 	remoteFilePath := flag.String("remote", "unknow", "remote_file_path")
+
+	// 获取文件
+	filenameOfGet := flag.String("getfile", "unknow", "the filename of the file you want to get")
+
 	//删除
 	filenameOfDel := flag.String("delfile", "unknow", "the filename of the file you want to del")
 
 	//获取指定目录下的文件列表
 	filesNameOfGet := flag.String("filesNameOfGet", "unknow", "the name of folder you want to check")
+
 	//获取指定目录下的目录列表
 	foldersNameOfGet := flag.String("foldersNameOfGet", "unknow", "the name of folder you want to check")
 
@@ -63,17 +63,19 @@ func main() {
 	fileStatOfGet := flag.String("getfilestat", "unknow", "the info of file you want to search")
 
 	flag.Parse()
+
+	//上传
+	if *localFilePath != "unknow" && *remoteFilePath != "unknow" {
+		client.PutFile(*localFilePath, *remoteFilePath)
+		fmt.Printf(" PutFile %s to %s \n", *localFilePath, *remoteFilePath)
+	}
+
 	// 读取
 	if *filenameOfGet != "unknow" {
 		client.GetFile(*filenameOfGet)
 		fmt.Println(" -Getfile for ", *filenameOfGet)
 	}
 
-	//Put
-	if *localFilePath != "unknow" && *remoteFilePath != "unknow" {
-		client.PutFile(*localFilePath, *remoteFilePath)
-		fmt.Printf(" PutFile %s to %s \n", *localFilePath, *remoteFilePath)
-	}
 	// 删除
 	if *filenameOfDel != "unknow" {
 		client.DelFile(*filenameOfDel)
@@ -85,6 +87,7 @@ func main() {
 		client.Mkdir(*curFolder, *newFolder)
 		fmt.Println("-Mkdir for ", *curFolder)
 	}
+
 	// 获取指定目录下的文件列表(测试过)
 	if *filesNameOfGet != "unknow" {
 		client.GetFiles(*filesNameOfGet)
@@ -96,6 +99,7 @@ func main() {
 		client.GetCurPathFolder(*foldersNameOfGet)
 		fmt.Println("-GetFolders for")
 	}
+
 	// 对目录进行重命名(测试过)
 	if *curFolder != "unknow" && *reNameFolder != "unknow" {
 		client.ReNameFolder(*curFolder, *reNameFolder)

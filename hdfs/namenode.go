@@ -320,22 +320,6 @@ func (namenode *NameNode) Run() {
 				}
 
 			}
-
-			// for j := 0; j < len(arr); j++{
-			// 	t := 0
-			// 	for k := 0; ; k++{
-			// 		if k == REDUNDANCE{
-			// 			break
-			// 		}else if k != j{
-			// 			continue
-			// 		}
-			// 		//replicaLocationList[t].ReplicaNum指的是
-			// 		namenode.DataNodes[arr[j]].ChunkCopy[replicaLocationList[k].ReplicaNum][t] = replicaLocationList[k]
-			// 		sugarLogger.Infof("namenode.DataNodes[%d].chunkCopy[%d][%d]为, 记录的副本位置为:%s, 对应index为%d, RNum为%d", arr[j], replicaLocationList[t].ReplicaNum, t, namenode.DataNodes[arr[j]].ChunkCopy[i][t].ServerLocation, namenode.DataNodes[arr[j]].ChunkCopy[i][t].index, namenode.DataNodes[arr[j]].ChunkCopy[i][t].ReplicaNum)
-			// 		t++
-			// 		// namenode.DataNodes[arr[j]].ChunkCopy[i] = append(namenode.DataNodes[arr[j]].ChunkCopy[i], replicaLocationList[k])
-			// 	}
-			// }
 			fileChunk := &FileChunk{}
 			file.Chunks = append(file.Chunks, *fileChunk)
 			file.Chunks[i].ReplicaLocationList = replicaLocationList
