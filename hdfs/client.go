@@ -386,46 +386,27 @@ func (client *Client) DelFile(fName string) {
 	if err == nil {
 		err := os.RemoveAll(client.TempStoreLocation)
 		if err != nil {
-			sugarLogger.Error(err)
+			fmt.Println("XXX Client error at remove tempfiles", err.Error())
 		}
 	}
 	fmt.Println("****************************************")
 	fmt.Printf("*** Deleting from TDFS [NameNode: %s] of /%s )\n", client.NameNodeAddr, fName)
 
-	response, err := http.Get(client.NameNodeAddr + "/delfile/" + fName)
+	d, err := json.Marshal(fName)
 	if err != nil {
-		sugarLogger.Error(err)
+		fmt.Println("json to byte[] error", err)
 	}
-	if response.StatusCode == http.StatusNotFound {
-		sugarLogger.Error(err)
-		return
+	reader := bytes.NewReader(d)
+	response, err := http.Post(client.NameNodeAddr+"/delFile", "application/json", reader)
+	if err != nil {
+		fmt.Println("Client error at Delete File", err.Error())
 	}
 	defer response.Body.Close()
-
-	// Read Response Body
-	bytes, err := ioutil.ReadAll(response.Body)
+	_, err = ioutil.ReadAll(response.Body)
 	if err != nil {
-		sugarLogger.Error(err)
+		fmt.Println("Client error at read response data", err.Error())
 	}
 
-	folder := &Folder{}
-	if err = json.Unmarshal(bytes, folder); err != nil {
-		fmt.Println("byte[] to json error", err)
-	}
-	files := folder.Files
-	flag := false
-	for i := 0; i < len(files); i++ {
-		if files[i].Name == fName {
-			flag = true
-			targetFile := files[i]
-			for j := 0; j < len(targetFile.Chunks); j++ {
-				client.delChunk(targetFile, j)
-			}
-		}
-	}
-	if !flag {
-		fmt.Println("*** not found file ")
-	}
 	fmt.Println("*** delete finish ")
 	fmt.Println("****************************************")
 }

@@ -231,7 +231,9 @@ func (namenode *NameNode) ApplyEditLog(log *EditLog) {
 			}
 		}
 	case "delfile":
-		namenode.DeleteFile(log.Path)
+		for i := 0; i < len(log.File.Chunks); i++ {
+			namenode.DelChunk(*log.File, i)
+		}
 	case "reFolderName":
 		namenode.NameSpace.ReNameFolderName(log.DataMap["preFolder"], log.DataMap["reNameFolder"])
 	case "mkdir":

@@ -390,18 +390,35 @@ func (namenode *NameNode) Run() {
 		c.JSON(http.StatusOK, file)
 	})
 
-	router.GET("/delfile/:filename", func(c *gin.Context) {
-		filename := c.Param("filename")
+	router.POST("/delfile", func(context *gin.Context) {
+		b, _ := context.GetRawData() // 从c.Request.Body读取请求数据
+		var dataMap map[string]string
+		if err := json.Unmarshal(b, &dataMap); err != nil {
+			sugarLogger.Errorf("namenode put json to byte error: %s", err)
+		}
+
+		filename := dataMap["filename"]
 		fmt.Println("$ delfile ...", filename)
+
+		node := namenode.NameSpace
+		file, err := node.GetFileNode(filename)
+		if err != nil {
+			sugarLogger.Errorf("delete file: %s error: %v\n", filename, err.Error())
+			context.JSON(http.StatusNotFound, err.Error())
+			return
+		}
 		// 复制日志
-		success := namenode.AddEditLog("delfile", filename, nil, false, nil, nil)
+		success := namenode.AddEditLog("delfile", "", file, false, nil, nil)
 		if !success {
-			c.JSON(http.StatusBadRequest, nil)
+			context.JSON(http.StatusBadRequest, nil)
 			return
 		}
 
-		targetFile := namenode.DeleteFile(filename)
-		c.JSON(http.StatusOK, targetFile)
+		for i := 0; i < len(file.Chunks); i++ {
+			namenode.DelChunk(*file, i)
+		}
+
+		context.JSON(http.StatusOK, file)
 	})
 
 	// Folder ReName
@@ -521,14 +538,12 @@ func (namenode *NameNode) DelChunk(file File, num int) {
 	var wg sync.WaitGroup
 	wg.Add(REDUNDANCE)
 	for i := 0; i < REDUNDANCE; i++ {
-		go func(i int) {
-			chunklocation := file.Chunks[num].ReplicaLocationList[i].ServerLocation
-			chunknum := file.Chunks[num].ReplicaLocationList[i].ReplicaNum
-			index := namenode.Map[chunklocation]
-			namenode.DataNodes[index].ChunkAvail = append(namenode.DataNodes[index].ChunkAvail, chunknum)
-			namenode.DataNodes[index].StorageAvail++
-			wg.Done()
-		}(i)
+		chunklocation := file.Chunks[num].ReplicaLocationList[i].ServerLocation
+		chunknum := file.Chunks[num].ReplicaLocationList[i].ReplicaNum
+		index := namenode.Map[chunklocation]
+		namenode.DataNodes[index].ChunkAvail = append(namenode.DataNodes[index].ChunkAvail, chunknum)
+		namenode.DataNodes[index].StorageAvail++
+		wg.Done()
 	}
 	wg.Wait()
 }
@@ -736,20 +751,6 @@ func (namenode *NameNode) PutFile(file *File) *File {
 		file = &File{}
 	}
 	return file
-}
-
-func (namenode *NameNode) DeleteFile(filename string) *File {
-	var targetFile *File = nil
-	files := namenode.NameSpace.Files
-	for i := 0; i < len(files); i++ {
-		if files[i].Name == filename {
-			targetFile = files[i]
-			for j := 0; j < len(targetFile.Chunks); j++ {
-				namenode.DelChunk(*targetFile, j)
-			}
-		}
-	}
-	return targetFile
 }
 
 func (namenode *NameNode) UpdateNewNode(dataMap map[string][]string) {
