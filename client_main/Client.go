@@ -30,7 +30,9 @@ func main() {
 	// go run Client.go -delfile "auto.jpg"
 
 	var client hdfs.Client
-	client.SetConfig("http://localhost:11090")
+
+	client.SetConfig("http://localhost:11088", "http://localhost:11089", "http://localhost:11090")
+	//client.SetConfig( "http://localhost:11089")
 	client.StoreLocation = "./dfs"
 	client.TempStoreLocation = "./dfs/temp"
 
