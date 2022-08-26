@@ -22,27 +22,27 @@ import (
 
 var mu sync.Locker
 
-func (namenode *NameNode) MonitorDN(){
-	defer func () {
-		if x := recover(); x != nil{
+func (namenode *NameNode) MonitorDN() {
+	defer func() {
+		if x := recover(); x != nil {
 			sugarLogger.Errorf("panic when monitor DataNode, err: %v\n", x)
 		}
 	}()
 
 	// sugarLogger.Info("开始监视DN")
 	ticker := time.NewTicker(5 * time.Second)
-	for{
-		<- ticker.C
+	for {
+		<-ticker.C
 		for i := 0; i < len(namenode.DataNodes); i++ {
 			t := time.Now().Unix() - namenode.DataNodes[i].LastQuery
 			// sugarLogger.Infof("DN: %s, 对应的t为%d, 当前时间: %d, LastQuery: %d", namenode.DataNodes[i].Location, t, time.Now().Unix(), namenode.DataNodes[i].LastQuery)
 			//如果大于一分钟，就表示该DN出现问题，无法完成上报任务。新建一个节点，将所有数据复制到新节点上
 			flag := false
-			if t > 30 && flag == false{
+			if t > 30 && flag == false {
 				namenode.Mu.Lock()
 				flag = true
 				sugarLogger.Warnf("超出规定时间间隔")
-				
+
 				sugarLogger.Warnf("%s节点超过规定时间间隔:%d, 开始建立新DataNode\n", namenode.DataNodes[i].Location, t)
 				dataNode := namenode.DataNodes[i]
 				s := namenode.StandByDataNode[0]
@@ -58,7 +58,7 @@ func (namenode *NameNode) MonitorDN(){
 
 				//新旧节点映射
 				namenode.OldToNewMap[dataNode.Location] = newLocation
-				
+
 				response, err := http.Get(newLocation + "/getmeta")
 				if err != nil {
 					fmt.Println("XXX NameNode error at Get meta of ", newLocation, ": ", err.Error())
@@ -76,14 +76,14 @@ func (namenode *NameNode) MonitorDN(){
 
 				sugarLogger.Infof("挂掉的节点的总容量为%d, 剩余容量为%d", dataNode.StorageTotal, dataNode.StorageAvail)
 				//这一步只是为了通知其他DN给新的DN发送chunk，没有改变namenode内部的信息
-				for i := 0; i < (dataNode.StorageTotal - dataNode.StorageAvail); i++{
-					for j := 0; j < REDUNDANCE - 1; j++{
+				for i := 0; i < (dataNode.StorageTotal - dataNode.StorageAvail); i++ {
+					for j := 0; j < REDUNDANCE-1; j++ {
 						//该DN也是快要挂掉的了，所以不用赋值给它
 						copyChunkLocation := dataNode.ChunkCopy[i][j].ServerLocation
 						copyChunkReplicaNum := dataNode.ChunkCopy[i][j].ReplicaNum
 
 						//如果存在，就转成新地址
-						if d, ok := namenode.OldToNewMap[copyChunkLocation]; ok{
+						if d, ok := namenode.OldToNewMap[copyChunkLocation]; ok {
 							copyChunkLocation = d
 						}
 
@@ -91,8 +91,8 @@ func (namenode *NameNode) MonitorDN(){
 						//将该信息发送给副本DN，让副本DN给新DN发送对应的chunk
 						rm := &ReplicaLocation{
 							ServerLocation: newLocation,
-							ReplicaNum: copyChunkReplicaNum,
-							OldNum: i,
+							ReplicaNum:     copyChunkReplicaNum,
+							OldNum:         i,
 						}
 
 						d, err := json.Marshal(rm)
@@ -242,7 +242,7 @@ func (namenode *NameNode) Run() {
 			replicaLocationList, _ := namenode.AllocateChunk()
 			// fmt.Println("rep", replicaLocationList)
 			// fmt.Println("arr", arr)
-			
+
 			//replicaLocationList中记录的是该chunk所有的ReplicaLocation信息
 			//arr记录的是含有chunk的datanode的下标
 			//记录每个chunk的副本信息
@@ -251,20 +251,20 @@ func (namenode *NameNode) Run() {
 			//功能，为replicaLocationList中的所有DN中添加副本信息
 			//所以需要遍历所有的DN
 			//最外层找下标
-			for j := 0; j < len(replicaLocationList); j++{
+			for j := 0; j < len(replicaLocationList); j++ {
 				index := replicaLocationList[j].index
 				t := 0
-				for k := 0; ; k++{
-					if k == len(replicaLocationList){
+				for k := 0; ; k++ {
+					if k == len(replicaLocationList) {
 						break
-					}else if k == j{
+					} else if k == j {
 						continue
 					}
 					namenode.DataNodes[index].ChunkCopy[replicaLocationList[j].ReplicaNum][t] = replicaLocationList[k]
 					// sugarLogger.Infof("现节点为%s, 备份位置为%d, 备份节点为%s, 备份位置为%d", replicaLocationList[j].ServerLocation, replicaLocationList[j].ReplicaNum, replicaLocationList[k].ServerLocation, replicaLocationList[k].ReplicaNum)
 					t = t + 1
 				}
-				
+
 			}
 
 			// for j := 0; j < len(arr); j++{
@@ -304,15 +304,15 @@ func (namenode *NameNode) Run() {
 		fmt.Println("$ getfile ...", filename)
 		node := namenode.NameSpace
 		file, err := node.GetFileNode(filename)
-		if err!= nil{
+		if err != nil {
 			fmt.Println(err)
 		}
 
 		//遍历每个chunk的每个副本位置，并更新
 		//因为可能该节点挂了，需要更新
 		//不确定是否能够到文件树内部的信息
-		for i := 0; i < len(file.Chunks); i++{
-			for j := 0; j < len(file.Chunks[i].ReplicaLocationList); j++{
+		for i := 0; i < len(file.Chunks); i++ {
+			for j := 0; j < len(file.Chunks[i].ReplicaLocationList); j++ {
 				file.Chunks[i].ReplicaLocationList[j].ServerLocation = namenode.DataNodes[file.Chunks[i].ReplicaLocationList[j].index].Location
 			}
 		}
@@ -326,21 +326,27 @@ func (namenode *NameNode) Run() {
 		c.JSON(http.StatusOK, file)
 	})
 
-	router.GET("/delfile/:filename", func(c *gin.Context) {
-		filename := c.Param("filename")
-		fmt.Println("$ delfile ...", filename)
-		var targetFile *File = nil
-		files := namenode.NameSpace.Files
-		for i := 0; i < len(files); i++ {
-			if files[i].Name == filename {
-				targetFile = files[i]
-				for j := 0; j < len(targetFile.Chunks); j++ {
-					namenode.DelChunk(*targetFile, j)
-				}
-			}
+	router.POST("/delfile", func(context *gin.Context) {
+		b, _ := context.GetRawData() // 从c.Request.Body读取请求数据
+		var dataMap map[string]string
+		if err := json.Unmarshal(b, &dataMap); err != nil {
+			sugarLogger.Errorf("namenode put json to byte error: %s", err)
 		}
 
-		c.JSON(http.StatusOK, targetFile)
+		filename := dataMap["filename"]
+		fmt.Println("$ delfile ...", filename)
+		node := namenode.NameSpace
+		file, err := node.GetFileNode(filename)
+		if err != nil {
+			sugarLogger.Errorf("delete file: %s error: %v\n", filename, err.Error())
+			context.JSON(http.StatusNotFound, err.Error())
+			return
+		}
+		for i := 0; i < len(file.Chunks); i++ {
+			namenode.DelChunk(*file, i)
+		}
+
+		context.JSON(http.StatusOK, file)
 	})
 
 	// Folder ReName
@@ -435,17 +441,16 @@ func (namenode *NameNode) Run() {
 			chunkAvail = append(chunkAvail, i)
 		}
 		newNode := DataNode{
-			Location:"http://localhost:" + dataMap["newNode"][1],
-			Port:port,
-			StorageTotal:400,
-			StorageAvail:400 - len(dataMap["filePath"]),
-			ChunkAvail:chunkAvail,
-			LastEdit:0,
-			DATANODE_DIR:"nil",
-			NNLocation:[]string{},
-			LastQuery:0,
-			ZapLogger:&zap.SugaredLogger{},
-
+			Location:     "http://localhost:" + dataMap["newNode"][1],
+			Port:         port,
+			StorageTotal: 400,
+			StorageAvail: 400 - len(dataMap["filePath"]),
+			ChunkAvail:   chunkAvail,
+			LastEdit:     0,
+			DATANODE_DIR: "nil",
+			NNLocation:   []string{},
+			LastQuery:    0,
+			ZapLogger:    &zap.SugaredLogger{},
 		}
 		namenode.DataNodes = append(namenode.DataNodes, newNode)
 		context.JSON(http.StatusOK, "update success!")
@@ -461,14 +466,12 @@ func (namenode *NameNode) DelChunk(file File, num int) {
 	var wg sync.WaitGroup
 	wg.Add(REDUNDANCE)
 	for i := 0; i < REDUNDANCE; i++ {
-		go func(i int) {
-			chunklocation := file.Chunks[num].ReplicaLocationList[i].ServerLocation
-			chunknum := file.Chunks[num].ReplicaLocationList[i].ReplicaNum
-			index := namenode.Map[chunklocation]
-			namenode.DataNodes[index].ChunkAvail = append(namenode.DataNodes[index].ChunkAvail, chunknum)
-			namenode.DataNodes[index].StorageAvail++
-			wg.Done()
-		}(i)
+		chunklocation := file.Chunks[num].ReplicaLocationList[i].ServerLocation
+		chunknum := file.Chunks[num].ReplicaLocationList[i].ReplicaNum
+		index := namenode.Map[chunklocation]
+		namenode.DataNodes[index].ChunkAvail = append(namenode.DataNodes[index].ChunkAvail, chunknum)
+		namenode.DataNodes[index].StorageAvail++
+		wg.Done()
 	}
 	wg.Wait()
 }
@@ -481,7 +484,7 @@ func (namenode *NameNode) AllocateChunk() (rlList [REDUNDANCE]ReplicaLocation, t
 	// tempDNArr = make([]int, REDUNDANCE)
 	//必须保证同一个chunk及其备份不能在同一个DN里面
 	//用mapset来保证DN的唯一性
-	// set := mapset.NewSet()							
+	// set := mapset.NewSet()
 	for i := 0; i < redundance; i++ {
 		max[i] = 0
 		//找到目前空闲块最多的NA
