@@ -2,7 +2,7 @@
 
 Implementation of simple distributed storage system
 
-ByteDance Distributed File System（以下简称 bd_dfs）是为完成**字节跳动青训营大项目设计的分布式文件系统**的名称。bd_dfs 实现了在分布式文件系统中的文件上传 Write、文件读取 Read、文件删除 Delete、文件元数据信息获取 Stat, 文件目录创建 Mkdir，文件重命名 Rename, 文件目录信息 List 等基本的文件操作功能。从架构上，bd_dfs 与 HDFS/GFS 有着类似的 Master/Slave 架构，bd_dfs 包括客户端 Client、名称节点 NameNode（以下简称 NN）、数据节点 DataNode（以下简称 DN）三部分构成。从编程实现上，我们使用 Go 语言编写了 bd_dfs，并且使用了 Go 语言中的 Gin 框架来编写 NN、DN 服务器的后端。
+ByteDance Distributed File System（以下简称 bd_dfs）是为完成**字节跳动青训营大项目设计的分布式文件系统**的名称。bd_dfs 实现了在分布式文件系统中的文件上传、文件读取、文件删除 、文件元数据信息获取, 文件目录创建，文件重命名, 文件目录信息等基本的文件操作功能。从架构上，bd_dfs 与 HDFS/GFS 有着类似的 Master/Slave 架构，bd_dfs 包括客户端 Client、名称节点 NameNode（以下简称 NN）、数据节点 DataNode（以下简称 DN）三部分构成。从编程实现上，我们使用 Go 语言编写了 bd_dfs，并且使用了 Go 语言中的 Gin 框架来编写 NN、DN 服务器的后端。
 
 ### 1 基本架构
 
