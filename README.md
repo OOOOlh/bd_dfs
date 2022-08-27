@@ -1,4 +1,4 @@
-# bd_hdfs
+# bd_dfs
 
 Implementation of simple distributed storage system
 
