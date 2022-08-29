@@ -280,12 +280,12 @@ func (client *Client) GetFileStat(fName string) { //fName string
 		fmt.Println("Client error at read response data", err.Error())
 	}
 
-	var folder []string
-	if err = json.Unmarshal(bytes, &folder); err != nil {
+	var file File
+	if err = json.Unmarshal(bytes, &file); err != nil {
 		fmt.Println("byte[] to json error", err)
 	}
 
-	fmt.Println("success get the file info :", data)
+	fmt.Println("success get the file info :", file)
 
 }
 
