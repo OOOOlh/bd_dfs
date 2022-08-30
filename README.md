@@ -20,23 +20,26 @@ bd_dfs 使用主从式（Master/Slave）架构。一个集群分为名称节点 
 ├── client_main
 │ └── Client.go // 来模拟一个 bd_dfs 的 Client
 ├── dn
-│ └── DataNode // 在本地伪分布式演示时 DN 的工作目录
-│ └── achunkhashs // DN 的工作目录下存储文件块数据哈希值的目录
-│ └── DN.go //启动一个 bd_dfs 的 DataNode
-├── dn1
-│ └── DataNode1 // 在本地伪分布式演示时 DN1 的工作目录
-│ └── achunkhashs // DN 的工作目录下存储文件块数据哈希值的目录
-│ └── DN1.go //启动一个 bd_dfs 的 DataNode1
-├── dn2
-│ └── DataNode2 // 在本地伪分布式演示时 DN2 的工作目录
-│ └── achunkhashs // DN 的工作目录下存储文件块数据哈希值的目录
-│ └── DN2.go //启动一个 bd_dfs 的 DataNode2
-├── dn3
-│ └── DataNode3 // 在本地伪分布式演示时 DN3 的工作目录
-│ └── achunkhashs // DN 的工作目录下存储文件块数据哈希值的目
-│ └── DN3.go //启动一个 bd_dfs 的 DataNod3
+| └── DN.go //启动一个 bd_dfs 的 DataNode
+│ ├─dn1
+│ │ ├─achunkhashs //该文件夹用来存储文件块的哈希值
+│ │ └─chunk //该文件夹用来存储文件块
+│ ├─dn2
+│ │ ├─achunkhashs
+│ │ └─chunk
+│ ├─dn3
+│ │ ├─achunkhashs
+│ │ └─chunk
+│ └─dn4
+│ | ├─achunkhashs
+│ | └─chunk
+├── nn1
+│ └── NN.go //启动一个 bd_dfs 的 DataNode1
+├── nn2
+│ └── NN.go //启动一个 bd_dfs 的 DataNode2
+├── nn3
+│ └── NN.go //启动一个 bd_dfs 的 DataNod3
 ├── hdfs
-│ ├── TestConfig_test.go
 │ ├── client.go // client 相关的所有操作
 │ ├── config.go // 系统的所有数据结构定义、参数相关
 │ ├── datanode.go // datanode 相关的所有操作
@@ -106,5 +109,3 @@ Windows 下：
 
 - 等待 30s，NameNode 感知到 DataNode 节点故障。可以看到此时新启动了一个进程。下载文件，非常流畅，因为此时故障节点上所有文件信息都被拷贝到新节点上了。
   ![image](https://github.com/OOOOlh/bd_dfs/blob/main/image/windows_datanode3.png)
-
-Linux 下：
