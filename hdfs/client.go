@@ -118,12 +118,10 @@ func (client *Client) GetFile(fName string) { //, fName string
 	response, err := http.Get(client.NameNodeAddr + "/getfile?filename=" + fName)
 	if err != nil {
 		fmt.Println("XXX Client error at Get file", err.Error())
-		// TDFSLogger.Fatal("XXX Client error at Get file", err)
 		sugarLogger.Fatalf("Client error at Get file", err)
 	}
 	if response.StatusCode == http.StatusNotFound {
 		fmt.Printf("Client file=%v not found\n", fName)
-		// TDFSLogger.Printf("Client file=%v not found", fName)
 		sugarLogger.Warnf("Client file=%s not found", fName)
 		return
 	}
@@ -132,7 +130,6 @@ func (client *Client) GetFile(fName string) { //, fName string
 	bytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		fmt.Println("client error at read response data", err.Error())
-		// TDFSLogger.Fatal("XXX Client error at read response data", err)
 		sugarLogger.Fatalf("client error at read response data:%s", err)
 	}
 
@@ -140,7 +137,6 @@ func (client *Client) GetFile(fName string) { //, fName string
 	err = json.Unmarshal(bytes, file)
 	if err != nil {
 		fmt.Println("client error at decode json", err.Error())
-		// TDFSLogger.Fatal("XXX Client error at decode json", err)
 		sugarLogger.Fatalf("client error at decode json:%s", err)
 	}
 
@@ -150,7 +146,6 @@ func (client *Client) GetFile(fName string) { //, fName string
 	if err != nil {
 		sugarLogger.Fatalf("client mkdir error:%s", err)
 		fmt.Println("XXX Client error at MkdirAll", err.Error())
-		// TDFSLogger.Fatal("XXX NameNode error: ", err)
 	}
 
 	for i := 0; i < len(file.Chunks); i++ {
