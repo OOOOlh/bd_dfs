@@ -126,7 +126,6 @@ func (namenode *NameNode) MonitorDN() {
 }
 
 func (namenode *NameNode) Run() {
-	// namenode.MonitorDN()
 	router := gin.Default()
 	router.Use(MwPrometheusHttp)
 	// register the `/metrics` route.
@@ -250,7 +249,6 @@ func (namenode *NameNode) Run() {
 	router.POST("/heartbeat", func(c *gin.Context) {
 		d, _ := c.GetRawData()
 		datanode := DataNode{}
-		// 反序列化
 		if len(d) == 0 {
 			fmt.Println("put request body为空")
 		}
@@ -274,7 +272,6 @@ func (namenode *NameNode) Run() {
 	router.POST("/put", func(c *gin.Context) {
 		b, _ := c.GetRawData() // 从c.Request.Body读取请求数据
 		file := &File{}
-		// 反序列化
 		if len(b) == 0 {
 			sugarLogger.Warn("client to namenode put request body为空")
 		}
@@ -294,17 +291,7 @@ func (namenode *NameNode) Run() {
 		}
 		for i := 0; i < int(chunkNum); i++ {
 			replicaLocationList, _ := namenode.AllocateChunk()
-			// fmt.Println("rep", replicaLocationList)
-			// fmt.Println("arr", arr)
 
-			//replicaLocationList中记录的是该chunk所有的ReplicaLocation信息
-			//arr记录的是含有chunk的datanode的下标
-			//记录每个chunk的副本信息
-			// i:第i个chunk
-			// j:第j个副本
-			//功能，为replicaLocationList中的所有DN中添加副本信息
-			//所以需要遍历所有的DN
-			//最外层找下标
 			for j := 0; j < len(replicaLocationList); j++ {
 				index := replicaLocationList[j].index
 				t := 0
@@ -503,6 +490,7 @@ func (namenode *NameNode) Run() {
 		namenode.UpdateNewNode(dataMap)
 		context.JSON(http.StatusOK, "update success!")
 	})
+
 	router.POST("/getfilestat", func(c *gin.Context) {
 		b, _ := c.GetRawData() // 从c.Request.Body读取请求数据
 		var dataMap map[string]string
@@ -518,9 +506,8 @@ func (namenode *NameNode) Run() {
 		}
 		filename := file.Name
 		length := file.Length
-		fmt.Println("filename: %s, filelength: %s\n", filename, length)
+		fmt.Printf("filename: %s, filelength: %d\n", filename, length)
 		c.JSON(http.StatusOK, file)
-		//context.JSON(http.StatusOK, 1)
 	})
 	router.Run(":" + strconv.Itoa(namenode.Port))
 }
@@ -541,12 +528,6 @@ func (namenode *NameNode) DelChunk(file File, num int) {
 func (namenode *NameNode) AllocateChunk() (rlList [REDUNDANCE]ReplicaLocation, tempDNArr []int) {
 	redundance := namenode.REDUNDANCE
 	var max [REDUNDANCE]int
-	// var tempDNArr [REDUNDANCE]int
-	// var tempDNArr [REDUNDANCE]int
-	// tempDNArr = make([]int, REDUNDANCE)
-	//必须保证同一个chunk及其备份不能在同一个DN里面
-	//用mapset来保证DN的唯一性
-	// set := mapset.NewSet()
 	for i := 0; i < redundance; i++ {
 		max[i] = 0
 		//找到目前空闲块最多的NA
@@ -581,8 +562,6 @@ func (namenode *NameNode) SetConfig(location string, dnnumber int, redundance in
 	res, err := strconv.Atoi(temp[2])
 	if err != nil {
 		sugarLogger.Errorf("namenode error at atoi parse port: %s", err)
-		// fmt.Println("XXX NameNode error at Atoi parse Port", err.Error())
-		// TDFSLogger.Fatal("XXX NameNode error: ", err)
 	}
 	namenode.NameSpace = &Folder{
 		Name:   "root",
@@ -628,8 +607,6 @@ func (namenode *NameNode) GetDNMeta() { // UpdateMeta
 		response, err := http.Get(namenode.DNLocations[i] + "/getmeta")
 		if err != nil {
 			sugarLogger.Errorf("namenode error at get meta of %s: %s", namenode.DNLocations[i], err)
-			// fmt.Println("XXX NameNode error at Get meta of ", namenode.DNLocations[i], ": ", err.Error())
-			// TDFSLogger.Fatal("XXX NameNode error: ", err)
 		}
 		defer response.Body.Close()
 
@@ -637,11 +614,7 @@ func (namenode *NameNode) GetDNMeta() { // UpdateMeta
 		err = json.NewDecoder(response.Body).Decode(&dn)
 		if err != nil {
 			sugarLogger.Errorf("namenode error at decode response to json: %s", err)
-			// fmt.Println("XXX NameNode error at decode response to json.", err.Error())
-			// TDFSLogger.Fatal("XXX NameNode error: ", err)
 		}
-		// fmt.Println(dn)
-		// err = json.Unmarshal([]byte(str), &dn)
 		dn.LastQuery = time.Now().Unix()
 		namenode.DataNodes = append(namenode.DataNodes, dn)
 	}
@@ -658,7 +631,6 @@ func (namenode *NameNode) StartNewDataNode(c []string) {
 			nil,
 			nil,
 		},
-		// Sys: sysproc,
 	}
 	process, err := os.StartProcess(c[0], c, &attr)
 	if err == nil {
