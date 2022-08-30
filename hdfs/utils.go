@@ -36,7 +36,6 @@ func CreateFile(fileName string) (newFile *os.File) {
   if err != nil {
 		sugarLogger.Error(err)
 	}
-	// TDFSLogger.Println(newFile)
 	return newFile
 }
 
@@ -62,8 +61,6 @@ func DeleteFile(fileName string){
 }
 
 func CleanFile(fileName string){
-	// DeleteFile(fileName)
-	// CreateFile(fileName)
 	var data []byte
 	FastWrite(fileName, data)
 }
@@ -126,10 +123,6 @@ func readFileByBytes(fileName string)([]byte){
 	if err != nil { 
 		sugarLogger.Error(err)
 	}
-	// fmt.Printf("Data as hex: %x\n", data)
-	// fmt.Printf("Data as bytes: %b\n", data)
-    // fmt.Printf("Data as string: %s\n", data)
-	// fmt.Println("Number of bytes read:", len(data))
 	return data
 }
 
@@ -148,7 +141,6 @@ func SplitToChunksByName(bigFileName string) (chunklist []ChunkUnit, dataLen int
 	data := readFileByBytes(bigFileName)
 	var i int = 0;
 	dataLen = len(data)
-	// fmt.Printf("dataLen:%d\n",dataLen)
 	for i < len(data)/SPLIT_UNIT {
 		chunklist = append(chunklist, data[i*SPLIT_UNIT:(i+1)*SPLIT_UNIT])
 		i++

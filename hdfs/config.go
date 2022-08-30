@@ -9,29 +9,15 @@ import (
 	"go.uber.org/zap"
 )
 
-/** Configurations for Pseudo Distributed Mode **/
-
-/** Configurations for ALL Mode **/
 const SPLIT_UNIT int = 1000
 const REDUNDANCE int = 2
 const HeartBeatInterval = 3 * time.Second
 const DN_CAPACITY int = 400
 const DN_DIR string = "./datanode"
 
-// const CHUNKTOTAL int = 400
-
 // Chunk 一律表示逻辑概念，表示文件块
 // Replica 表示文件块副本，是实际存储的
-/** Data Structure **/
-type ChunkUnit []byte // SPLIT_UNIT
-// type ChunkReplicaOfFile map[int]FileChunk
-
-// type FileChunk struct{
-// 	Filename string
-// 	ChunkNum int
-// }
-
-//type NameSpaceStruct FileFolderNode
+type ChunkUnit []byte 
 
 // 创建文件目录方法  input-> (文件当前目录， 新建文件夹名字)
 // 创建成功返回True  创建失败（当前目录不存在， 或者该文件夹已经存在）返回False
@@ -119,7 +105,7 @@ type File struct {
 	Length          int64
 	Chunks          []FileChunk
 	OffsetLastChunk int
-	Info            string // file info
+	Info            string
 	RemotePath      string
 }
 
@@ -204,7 +190,7 @@ func (Node *Folder) GetFileNode(filePath string) (*File, error) {
 				break
 			}
 		}
-		// 没有该目录
+
 		if !validFolder {
 			return nil, fmt.Errorf("folder=%v not found", step)
 		}
@@ -214,7 +200,6 @@ func (Node *Folder) GetFileNode(filePath string) (*File, error) {
 			return file, nil
 		}
 	}
-	//没有该文件
 	return nil, fmt.Errorf("file=%v not found", path[len(path)-1])
 }
 
@@ -247,8 +232,6 @@ type Config struct {
 	NameNodeAddr string
 }
 
-//限制文件夹层数为3
-//最长比如是/root/bd_hdfs/auto.png
 type NameNode struct {
 	NameSpace *Folder
 	Location  string
@@ -281,13 +264,10 @@ type DataNode struct {
 	LastEdit     int64  `json:"LastEdit"`
 	DATANODE_DIR string `json:"DATANODE_DIR"`
 
-	// Ticker *time.Ticker
 	NNLocation []string
 	LastQuery  int64
 
-	// DNLogger *log.Logger
 	ZapLogger *zap.SugaredLogger
-	// Chunk []ReplicaLocation
 	ChunkCopy [DN_CAPACITY][REDUNDANCE]ReplicaLocation
 }
 type DNMeta struct {

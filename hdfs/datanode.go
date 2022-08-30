@@ -22,11 +22,10 @@ func (datanode *DataNode) Run() {
 
 	router := gin.Default()
 	router.Use(MwPrometheusHttp)
-	// register the `/metrics` route.
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	router.POST("/putChunkBybytes", func(context *gin.Context) {
-		b, _ := context.GetRawData() // 从c.Request.Body读取请求数据
+		b, _ := context.GetRawData()
 		var dataMap map[string][]byte
 		if err := json.Unmarshal(b, &dataMap); err != nil {
 			sugarLogger.Errorf("namenode put json to byte error: %s", err)
@@ -52,14 +51,13 @@ func (datanode *DataNode) Run() {
 			return
 		}
 
-		//ReplicaNum是下一个将要被使用的chunk
-		chunkout, err := os.Create(datanode.DATANODE_DIR + "/chunk/chunk-" + ReplicaNum) //在服务器本地新建文件进行存储
+		chunkout, err := os.Create(datanode.DATANODE_DIR + "/chunk/chunk-" + ReplicaNum)
 		if err != nil {
 			fmt.Println("XXX DataNode error at Create chunk file", err.Error())
 			datanode.ZapLogger.Fatalf("%s DataNode error at Create chunk file:%v", datanode.Location, err.Error())
 		}
 		defer chunkout.Close()
-		io.Copy(chunkout, file) //在服务器本地新建文件进行存储
+		io.Copy(chunkout, file)
 
 		chunkdata := readFileByBytes(datanode.DATANODE_DIR + "/chunk/chunk-" + ReplicaNum)
 
@@ -69,7 +67,6 @@ func (datanode *DataNode) Run() {
 		datanode.ZapLogger.Infof("chunk hash %s, hashStr %s", ReplicaNum, hashStr)
 		FastWrite(datanode.DATANODE_DIR+"/achunkhashs/chunkhash-"+ReplicaNum, []byte(hashStr))
 
-		//100
 		n := datanode.StorageAvail
 		datanode.ChunkAvail[0] = datanode.ChunkAvail[n-1]
 		datanode.ChunkAvail = datanode.ChunkAvail[0 : n-1]
@@ -107,7 +104,6 @@ func (datanode *DataNode) Run() {
 		num, err := strconv.Atoi(chunknum)
 		if err != nil {
 			datanode.ZapLogger.Fatalf("%s DataNode error at Atoi parse chunknum to int: %v", datanode.Location, err.Error())
-			// datanode.DNLogger.Fatalf("%s DataNode error at Atoi parse chunknum to int: %v\n", datanode.Location, err.Error())
 		}
 
 		CleanFile(datanode.DATANODE_DIR + "/chunk/chunk-" + strconv.Itoa(num))
@@ -124,7 +120,6 @@ func (datanode *DataNode) Run() {
 	router.POST("/fixchunk", func(c *gin.Context)  {
 		d, _ := c.GetRawData()
 		rm := &ReplicaLocation{}
-		// 反序列化
 		if len(d) == 0 {
 			fmt.Println("put request body为空")
 		}
@@ -143,22 +138,19 @@ func (datanode *DataNode) Run() {
 			datanode.ZapLogger.Error("client error: ", err)
 		}
 
-		/** Open source file **/
 		srcFile, err := os.Open(chunkPath)
 		if err != nil {
 			datanode.ZapLogger.Error("client error at Open source file", err.Error())
 		}
 		defer srcFile.Close()
 
-		/** Write to form file **/
 		_, err = io.Copy(formFile, srcFile)
 		if err != nil {
 			datanode.ZapLogger.Error("client error at Write to form file", err.Error())
 		}
 
-		/** Set Params Before Post **/
 		params := map[string]string{
-			"ReplicaNum": strconv.Itoa(rm.OldNum), //chunkNum
+			"ReplicaNum": strconv.Itoa(rm.OldNum),
 		}
 		for key, val := range params {
 			err = writer.WriteField(key, val)
@@ -168,7 +160,7 @@ func (datanode *DataNode) Run() {
 		}
 
 		contentType := writer.FormDataContentType()
-		writer.Close() // 发送之前必须调用Close()以写入结尾行
+		writer.Close()
 		
 		resp, err := http.Post(rm.ServerLocation + "/addnewchunk", contentType, buf)
 		if err != nil {
@@ -176,7 +168,6 @@ func (datanode *DataNode) Run() {
 		}
 		defer resp.Body.Close()
 
-		/** Read response **/
 		response, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			datanode.ZapLogger.Error("DataNode error at Read response", err.Error())
@@ -185,33 +176,27 @@ func (datanode *DataNode) Run() {
 	})
 
 	//新DN接收来自其他DN的请求
-	//接收到请求后，新DN在本地建立一个新chunk，以及对应的哈希
+	//接收到请求后，新DN在本地建立一个新的相同的chunk，以及对应的哈希
 	router.POST("/addnewchunk", func(c *gin.Context) {
-		// c.Request.ParseMultipartForm(32 << 20) //上传最大文件限制32M
-		// chunkNum := c.Request.Form.Get("chunkNum") //通过这种方式在gin中也可以读取到POST的参数，ginb
 		ReplicaNum := c.PostForm("ReplicaNum")
 		datanode.ZapLogger.Infof("* ReplicaNum=%s", ReplicaNum)
-		// datanode.DNLogger.Printf("* ReplicaNum= %s\n", ReplicaNum)
+
 		file, _, err := c.Request.FormFile("addchunk")
 		if err != nil {
 			c.String(http.StatusBadRequest, "XXX Bad request")
 			datanode.ZapLogger.Fatalf("%s DataNode error: %v", datanode.Location, err)
-			// datanode.DNLogger.Fatalf("%s DataNode error: %v\n", datanode.Location, err)
 			return
 		}
 
-		//ReplicaNum是下一个将要被使用的chunk
-		chunkout, err := os.Create(datanode.DATANODE_DIR + "/chunk/chunk-" + ReplicaNum) //在服务器本地新建文件进行存储
+		chunkout, err := os.Create(datanode.DATANODE_DIR + "/chunk/chunk-" + ReplicaNum)
 		if err != nil {
 			fmt.Println("XXX DataNode error at Create chunk file", err.Error())
 			datanode.ZapLogger.Fatalf("%s DataNode error at Create chunk file:%v", datanode.Location, err.Error())
 		}
 		defer chunkout.Close()
 
-		//file复制给chunkout
-		io.Copy(chunkout, file) //在服务器本地新建文件进行存储
+		io.Copy(chunkout, file)
 
-		//建立哈希
 		chunkdata := readFileByBytes(datanode.DATANODE_DIR + "/chunk/chunk-" + ReplicaNum)
 
 		hash := sha256.New()
@@ -220,7 +205,6 @@ func (datanode *DataNode) Run() {
 		datanode.ZapLogger.Infof("chunk hash %s, hashStr %s", ReplicaNum, hashStr)
 		FastWrite(datanode.DATANODE_DIR+"/achunkhashs/chunkhash-"+ReplicaNum, []byte(hashStr))
 
-		//100
 		n := datanode.StorageAvail
 		datanode.ChunkAvail[0] = datanode.ChunkAvail[n-1]
 		datanode.ChunkAvail = datanode.ChunkAvail[0 : n-1]
@@ -250,7 +234,6 @@ func (datanode *DataNode) SendHeartbeat() {
 			if err != nil {
 				datanode.ZapLogger.Fatalf("%s Datanode send heartbeat json to byte[] error: %v", datanode.Location, err.Error())
 			}
-			// 序列化
 			reader := bytes.NewReader(d)
 			resp, err := http.Post(datanode.NNLocation[0]+"/heartbeat", "application/json", reader)
 			if err != nil {
@@ -263,10 +246,6 @@ func (datanode *DataNode) SendHeartbeat() {
 
 func (datanode *DataNode) SetConfig(port string) {
 
-	//配置DN日志
-	// logFile := OpenFile(datanode.DATANODE_DIR + "/DNLog.txt")
-	// datanode.DNLogger = log.New(logFile, "Log " + port + ":", log.Ldate|log.Ltime|log.Lshortfile)
-
 	datanode.ZapLogger = InitLogger(datanode.DATANODE_DIR + "/DNLog.log")
 
 	//所有NN地址
@@ -274,7 +253,6 @@ func (datanode *DataNode) SetConfig(port string) {
 
 	res, err := strconv.Atoi(port)
 	if err != nil {
-		// fmt.Println("XXX DataNode error at Atoi parse Port", err.Error())
 		datanode.ZapLogger.Fatalf("%s DataNode error at Atoi parse Port:%v", port, err)
 	}
 	datanode.Port = res
@@ -292,12 +270,6 @@ func (datanode *DataNode) SetConfig(port string) {
 	for num := 0; num < datanode.StorageTotal; num++ {
 		CreateFile(datanode.DATANODE_DIR + "/chunk/chunk-" + strconv.Itoa(num))
 	}
-	// fmt.Println("************************************************************")
-	// fmt.Println("************************************************************")
-	// fmt.Printf("*** Successfully Set Config data for a datanode\n")
-	// datanode.ShowInfo()
-	// fmt.Println("************************************************************")
-	// fmt.Println("************************************************************")
 
 	datanode.ZapLogger.Info("************************************************************")
 	datanode.ZapLogger.Info("************************************************************")
@@ -317,28 +289,22 @@ func (datanode *DataNode) Reset() {
 func (datanode *DataNode) reset(dir string) {
 	exist, err := PathExists(dir)
 	if err != nil {
-		// fmt.Println("XXX DataNode error at Get Dir chunkhashs", err.Error())
 		datanode.ZapLogger.Fatalf("%s DataNode error at Get Dir: %v", datanode.Location, err)
 	}
 
 	if !exist {
-		// 不存在创建chunkhash
 		err = os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
-			// fmt.Println("XXX DataNode error at MkdirAll chunkhashs", err.Error())
 			datanode.ZapLogger.Fatalf("%s DataNode error at MkdirAll: %v ", datanode.Location, err)
 		}
 	} else {
-		// 存在首先删除然后创建chunkhash
 		err := os.RemoveAll(dir)
 		if err != nil {
-			// fmt.Println("XXX DataNode error at RemoveAll file hash data", err.Error())
 			datanode.ZapLogger.Fatalf("%s DataNode error at RemoveAll file hash data: %v ", datanode.Location, err)
 		}
 
 		err = os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
-			// fmt.Println("XXX DataNode error at MkdirAll chunkhashs", err.Error())
 			datanode.ZapLogger.Fatalf("%s DataNode error at MkdirAll: %v ", datanode.Location, err)
 		}
 	}

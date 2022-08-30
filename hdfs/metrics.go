@@ -7,15 +7,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// 创建监控项,并且用标签的形式区分
-//作业要求：
-
-//基本性能测试：
-//元数据面单个请求的端到端延时
-//元数据节点的各个请求的最高负载（QPS，每秒请求数，服务器在每秒内所能处理多少请求）
-
-//基本指标监控：
-//各接口请求总量、请求成功率、网络流量、存储数据分布（存储在哪些节点上）、
 var (
 	GaugeVecApiDuration = prometheus.NewSummaryVec(prometheus.SummaryOpts{
 		Name: "apiDuration",
@@ -42,7 +33,6 @@ func MwPrometheusHttp(c *gin.Context) {
 	GaugeVecApiMethod.WithLabelValues(method).Inc()
 
 	c.Next()
-	// after request
 	end := time.Now().UnixNano()
 	d := end - start
 	GaugeVecApiDuration.WithLabelValues(method).Observe(float64(d))

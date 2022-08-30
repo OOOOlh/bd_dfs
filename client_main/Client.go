@@ -11,25 +11,21 @@ func main() {
 	/*添加文件*/
 	// cd client_main
 	// go run Client.go -local "绝对路径"或"./(相对路径，与Client.go同路径)" -remote "namenode文件路径"
-	//例如
-	// go run Client.go -local "./auto.jpg" -remote "/root/data/auto.jpg"
 
 	/*下载文件*/
 	// cd client_main
 	// go run Client.go -getfile "namenode文件路径"
-	//例如
-	// go run Client.go -getfile "/root/data/auto.jpg"
+
 
 	/*删除文件*/
 	// cd client_main
 	// go run Client.go -delfile "文件名"
-	//例如
-	// go run Client.go -delfile "auto.jpg"
+
 
 	var client hdfs.Client
 
 	client.SetConfig("http://localhost:11088", "http://localhost:11089", "http://localhost:11090")
-	//client.SetConfig( "http://localhost:11089")
+
 	client.StoreLocation = "./dfs"
 	client.TempStoreLocation = "./dfs/temp"
 
@@ -50,8 +46,10 @@ func main() {
 	foldersNameOfGet := flag.String("foldersNameOfGet", "unknow", "the name of folder you want to check")
 
 	curFolder := flag.String("curFolder", "unknow", "the folder you want to make")
+
 	//目录下新建目录
 	newFolder := flag.String("newFolder", "unknow", "the name of folder you want to check")
+	
 	//目录下重命名
 	reNameFolder := flag.String("reNameFolder", "unknow", "the name of folder you want to check")
 

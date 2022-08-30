@@ -100,9 +100,7 @@ func (namenode *NameNode) doHeartBeat() bool {
 		}
 		heartbeatStr, _ := json.Marshal(heartBeat)
 		fmt.Printf("send heartbeat=%+v\n", string(heartbeatStr))
-		// json字符串
 		d, _ := json.Marshal(heartBeat)
-		// 序列化
 		reader := bytes.NewReader(d)
 		resp, err := http.Post(location+"/nn_heartbeat", "application/json", reader)
 		if err != nil {
@@ -152,9 +150,7 @@ func (namenode *NameNode) doVote() {
 			voteNum++
 			continue
 		}
-		// json字符串
 		d, _ := json.Marshal(vote)
-		// 序列化
 		reader := bytes.NewReader(d)
 		resp, err := http.Post(location+"/vote", "application/json", reader)
 		if err != nil {

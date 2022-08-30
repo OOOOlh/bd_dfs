@@ -20,9 +20,7 @@ func main() {
 	var nn hdfs.NameNode
 	nn.NAMENODE_DIR = NN_DIR
 	nn.StandByDataNode = standBy
-	// dnlocations := []string{"http://localhost:11091", "http://localhost:11092", "http://localhost:11093"}
 	nnlocations := []string{"http://localhost:11088", "http://localhost:11089", "http://localhost:11090"}
-	//nn.Reset()
 	c := [][]string{
 		{EXEC, "-dir", "dn1", "-port", "11091"},
 		{EXEC, "-dir", "dn2", "-port", "11092"},
