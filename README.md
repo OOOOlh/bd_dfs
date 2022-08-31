@@ -1,4 +1,4 @@
-# bd_dfs
+https://github.com/xpzoumeng/bd_hdfs.git# bd_dfs
 
 Implementation of simple distributed storage system
 
@@ -17,40 +17,29 @@ bd_dfs 使用主从式（Master/Slave）架构。一个集群分为名称节点 
 在 bd_dfs 的项目下所有文件及文件夹如下所示：
 
 ```markdown
+├── README.md
 ├── client_main
-│ └── Client.go // 来模拟一个 bd_dfs 的 Client
+│   ├── Client.go // 来模拟一个 bd_dfs 的 Client
+│   ├── Client_test.go
+│   └── test.txt
 ├── dn
-| └── DN.go //启动一个 bd_dfs 的 DataNode
-│ ├─dn1
-│ │ ├─achunkhashs //该文件夹用来存储文件块的哈希值
-│ │ └─chunk //该文件夹用来存储文件块
-│ ├─dn2
-│ │ ├─achunkhashs
-│ │ └─chunk
-│ ├─dn3
-│ │ ├─achunkhashs
-│ │ └─chunk
-│ └─dn4
-│ | ├─achunkhashs
-│ | └─chunk
-├── nn1
-│ └── NN.go //启动一个 bd_dfs 的 DataNode1
-├── nn2
-│ └── NN.go //启动一个 bd_dfs 的 DataNode2
-├── nn3
-│ └── NN.go //启动一个 bd_dfs 的 DataNod3
+│   └── DN.go //启动一个 bd_dfs 的 DataNode
+├── go.mod
 ├── hdfs
-│ ├── client.go // client 相关的所有操作
-│ ├── config.go // 系统的所有数据结构定义、参数相关
-│ ├── datanode.go // datanode 相关的所有操作
-│ ├── metrics.go // 系统的监控函数定义
-│ ├── namenode.go // namenode 相关的所有操作
-│ ├── utils.go / 文件操作的一些工具函数
-│ └── zaplog.go // 系统日志的定义
-├── nn
-│ └── NameNode // 在本地伪分布式演示时 NN 的工作目录
-│ └── NN.go
-└── test.go
+│   ├── client.go // client 相关的所有操作
+│   ├── config.go // 系统的所有数据结构定义、参数相关
+│   ├── datanode.go // datanode 相关的所有操作
+│   ├── metrics.go // 系统的监控函数定义
+│   ├── namenode.go // namenode 相关的所有操作
+│   ├── raft.go // Raft算法实现定义
+│   ├── utils.go // 文件操作的一些工具函数
+│   └── zaplog.go // 系统日志的定义
+├── nn1
+│   └── NN.go //启动一个 bd_dfs 的 DataNode1
+├── nn2
+│   └── NN.go //启动一个 bd_dfs 的 DataNode2
+└── nn3
+└── NN.go //启动一个 bd_dfs 的 DataNode3
 ```
 
 ### 3. 基本模块功能介绍及命令
